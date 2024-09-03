@@ -1,4 +1,9 @@
 
+
+
+
+
+
 # Create dataframe for plot with overall line
 test_data_overall_fn <- data.frame(level=1:5,
                                    level_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing", "Overall"),

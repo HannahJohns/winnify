@@ -1,5 +1,5 @@
 # Win ratio plot function AND COLOURED BACKGROUND reordered for red on left and green on right
-wrplotfn_colourpanel_reorder <- function(df)
+winRatioPlot <- function(df)
 {
 
         library(tidyverse)
