@@ -19,7 +19,7 @@ winRatioPlot <- function(dataframe, id, trt, active, outcomes, fu)
                                 fu = wr$call$fu, data = wr$call$data)
                 wr_output_df <- data.frame(level=i, level_names=wr2$call$outcome$outc1[i], win_inherit=(wr2$total.wins-wr2$wins[i]), win=wr2$wins[i],
                                            tie=wr2$total.ties, loss=wr2$loss[i], loss_inherit=(wr2$total.loss-wr2$loss[i]),
-                                           win_ratio=(wr2$total.wins/wr2$total.loss), ci_lower=2, ci_upper=4,
+                                           win_ratio=(wr2$wins[i]/wr2$loss[i]), ci_lower=0.6, ci_upper=1.4,
                                            win_ratio_cum=wr2$wr, ci_lower_cum=wr2$wr.lower, ci_upper_cum=wr2$wr.upper)
                 df <- rbind(df, wr_output_df)
         }
@@ -27,7 +27,7 @@ winRatioPlot <- function(dataframe, id, trt, active, outcomes, fu)
         # Create a dataframe with overall data line info
         overall_line <- data.frame(level=(length(wr$call$outcomes)+1), level_names="Overall", win_inherit=0, win=wr$total.wins,
                                    tie=wr$total.ties, loss=wr$total.loss, loss_inherit=0,
-                                   win_ratio=wr$wr, ci_lower=2, ci_upper=4,
+                                   win_ratio=wr$wr, ci_lower=wr$wr.lower, ci_upper=wr$wr.upper,
                                    win_ratio_cum=wr$wr, ci_lower_cum=wr$wr.lower, ci_upper_cum=wr$wr.upper)
 
         df <- rbind(df, overall_line)
@@ -92,7 +92,7 @@ winRatioPlot <- function(dataframe, id, trt, active, outcomes, fu)
                                              xmin=c((max(df$level)+0.3),(max(df$level)+0.3)),
                                              xmax=c(0.5,0.5),
                                              ymin=c(0,1),
-                                             ymax=c(1,max(df$ci_upper)))
+                                             ymax=c(1,max(df$ci_upper, df$ci_upper_cum)))
 
         background_colourpanel$favours_int <- factor(background_colourpanel$favours_int,
                                                      levels = c(0,1),

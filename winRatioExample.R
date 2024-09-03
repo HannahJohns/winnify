@@ -48,7 +48,7 @@ data5 <- full_join(data3, data4, by = "id")
 
 df <- full_join(data1, data5, by = "id")
 
-write.csv(df, "test_data.csv")
+write.csv(df, "test_data.csv", row.names = FALSE, quote = FALSE)
 
 # Calculate the win ratio
 wr <- winratio(id = "id", trt = "trt", active = "Treatment",
@@ -70,7 +70,7 @@ for (i in 1:length(wr$call$outcomes)) {
                         fu = wr$call$fu, data = wr$call$data)
        wr_output_df <- data.frame(level=i, level_names=wr2$call$outcome$outc1[i], win_inherit=(wr2$total.wins-wr2$wins[i]), win=wr2$wins[i],
                           tie=wr2$total.ties, loss=wr2$loss[i], loss_inherit=(wr2$total.loss-wr2$loss[i]),
-                          win_ratio=(wr2$total.wins/wr2$total.loss), ci_lower=2, ci_upper=4,
+                          win_ratio=(wr2$wins[i]/wr2$loss[i]), ci_lower=2, ci_upper=4,
                           win_ratio_cum=wr2$wr, ci_lower_cum=wr2$wr.lower, ci_upper_cum=wr2$wr.upper)
         wr_output_full <- rbind(wr_output_full, wr_output_df)
 }
