@@ -24,7 +24,7 @@ plot.WinRatio <- function(wr)
                            win_inherit=(tmp_wr_cumulative$total.wins-tmp_wr_cumulative$wins[i]), win=tmp_wr_cumulative$wins[i],
                            tie=tmp_wr_cumulative$total.ties,
                            loss=tmp_wr_cumulative$loss[i], loss_inherit=(tmp_wr_cumulative$total.loss-tmp_wr_cumulative$loss[i]),
-                           win_ratio=(tmp_wr_cumulative$wins[i]/tmp_wr_cumulative$loss[i]),
+                           win_ratio=tmp_wr_individual$wr,
                            ci_lower=tmp_wr_individual$wr.lower, ci_upper=tmp_wr_individual$wr.upper,
                            win_ratio_cum=tmp_wr_cumulative$wr,
                            ci_lower_cum=tmp_wr_cumulative$wr.lower, ci_upper_cum=tmp_wr_cumulative$wr.upper

@@ -107,9 +107,9 @@ winRatioPlot <- function(df)
                 scale_fill_manual(values=c("#D10707", "#45E928")) +
                 geom_hline(yintercept=1,color="#1A2678") +
                 geom_errorbar(data=df[df$level<max(df$level), ],
-                              aes(x=level-0.1, ymin=ci_lower, ymax=ci_upper, color="Level win ratio"), width=0) +
+                              aes(x=level-0.1, ymin=ci_lower, ymax=ci_upper, color="Outcome win ratio"), width=0) +
                 geom_point(data=df[df$level<max(df$level), ],
-                           aes(x=level-0.1, y=win_ratio, color="Level win ratio"), size=2.5, shape=4) +
+                           aes(x=level-0.1, y=win_ratio, color="Outcome win ratio"), size=2.5, shape=4) +
                 geom_line(data=df[df$level<max(df$level), ],
                           aes(x=level+0.1,y=win_ratio_cum), color="black", linetype="dashed") +
                 geom_errorbar(data=df[df$level<max(df$level), ],
