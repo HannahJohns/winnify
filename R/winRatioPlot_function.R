@@ -1,7 +1,6 @@
-# Win ratio plot function AND COLOURED BACKGROUND reordered for red on left and green on right
+# Win ratio plot function
 winRatioPlot <- function(df)
 {
-
         library(tidyverse)
         library(patchwork)
 
@@ -16,9 +15,40 @@ winRatioPlot <- function(df)
         if(("level_names" %in% names(df)) != TRUE){
                 stop("Missing or different variable name: check level name variable is labelled 'level_names'")
         }
+        if(("win_inherit" %in% names(df)) != TRUE){
+                stop("Missing or different variable name: check wins inherited variable is labelled 'win_inherit'")
+        }
         if(("win" %in% names(df)) != TRUE){
                 stop("Missing or different variable name: check win variable is labelled 'win'")
         }
+        if(("tie" %in% names(df)) != TRUE){
+                stop("Missing or different variable name: check ties variable is labelled 'tie'")
+        }
+        if(("loss" %in% names(df)) != TRUE){
+                stop("Missing or different variable name: check losses variable is labelled 'loss'")
+        }
+        if(("loss_inherit" %in% names(df)) != TRUE){
+                stop("Missing or different variable name: check losses inherited variable is labelled 'loss_inherit'")
+        }
+        if(("win_ratio" %in% names(df)) != TRUE){
+                stop("Missing or different variable name: check level win ratio variable is labelled 'win_ratio'")
+        }
+        if(("ci_lower" %in% names(df)) != TRUE){
+                stop("Missing or different variable name: check lower level CI variable is labelled 'ci_lower'")
+        }
+        if(("ci_upper" %in% names(df)) != TRUE){
+                stop("Missing or different variable name: check upper level CI variable is labelled 'ci_upper'")
+        }
+        if(("win_ratio_cum" %in% names(df)) != TRUE){
+                stop("Missing or different variable name: check cumulative win ratio variable is labelled 'win_ratio_cum'")
+        }
+        if(("ci_lower_cum" %in% names(df)) != TRUE){
+                stop("Missing or different variable name: check lower cumulative CI variable is labelled 'ci_lower_cum'")
+        }
+        if(("ci_upper_cum" %in% names(df)) != TRUE){
+                stop("Missing or different variable name: check upper cumulative CI variable is labelled 'ci_upper_cum'")
+        }
+
 
         # Sort data in ascending level in case dataframe is out of level order
         df <- df[order(df$level),]

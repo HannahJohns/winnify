@@ -4,7 +4,19 @@ library(WinRatio)
 ?WinRatio::winratio
 # Load survival package to use the dataset 'bladder1'
 library(survival)
+#########################################################################################
+data_test <- read.csv("test_data.csv")
 
+wr <- winratio(id = "id", trt = "trt", active = "Treatment",
+               outcomes = list(outc1 = c("death", "s", "t2death"),
+                               outc2 = list(paste0("recurr", 1:9), "r", paste0("t2recurr", 1:9)),
+                               outc3 = c("size", "c", ">")),
+               fu = "t2death", data = data_test)
+
+df <- plot.WinRatio(wr)
+winRatioPlot(df)
+
+#########################################################################################
 # Creation of dataset 'df' with 3 outcomes:
 #   Outcome 1: death (survival event)
 #   Outcome 2: cancer recurrence (repeated survival event)
@@ -79,7 +91,9 @@ for (i in 1:length(wr$call$outcomes)) {
 
 wr_output_full
 
-
+wrtest <- winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
+                outcomes = wr$call$outcomes[3],
+                fu = wr$call$fu, data = wr$call$data)
 
 
 # wr_dataframe <- do.call("rbind",wr_output_list)
