@@ -1,25 +1,52 @@
 
-data_test <- read.csv("test_data.csv")
+# Use a name like plot.x - what we're doing is producing what's called an S3 generic function
+# for the winratio plot.
+# https://adv-r.hadley.nz/s3.html
 
 # Win ratio plot function AND COLOURED BACKGROUND reordered for red on left and green on right
-winRatioPlot <- function(dataframe, id, trt, active, outcomes, fu)
+plot.WinRatio <- function(x)
 {
         library(tidyverse)
         library(patchwork)
 
-        wr <- winratio(id = id, trt = trt, active = active,
-                       outcomes = outcomes,
-                       fu = fu, data = dataframe)
-
-        # Extract data and create dataframe [NEED TO FIX CALCULATING CONFIDENCE INTERVALS FOR INDIVIDUAL LEVELS...]
+        # Extract data and create dataframe
         wr_output_list <- lapply(1:length(wr$call$outcomes), function(i) {
-                wr2 <- winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
+
+                # Get estimates for win ratio based on outcome i and outcomes 1 to i
+
+                tmp_wr_individual <- winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
+                                              outcomes = wr$call$outcomes[i],
+                                              fu = wr$call$fu, data = wr$call$data)
+
+                tmp_wr_cumulative <- winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
                                 outcomes = wr$call$outcomes[1:i],
                                 fu = wr$call$fu, data = wr$call$data)
-                data.frame(level=i, level_names=wr2$call$outcome$outc1[i], win_inherit=(wr2$total.wins-wr2$wins[i]), win=wr2$wins[i],
-                           tie=wr2$total.ties, loss=wr2$loss[i], loss_inherit=(wr2$total.loss-wr2$loss[i]),
-                           win_ratio=(wr2$wins[i]/wr2$loss[i]), ci_lower=0.5, ci_upper=1.4,
-                           win_ratio_cum=wr2$wr, ci_lower_cum=wr2$wr.lower, ci_upper_cum=wr2$wr.upper)
+
+                # TODO: what if the outcomes aren't called outc1?
+                # You can access the i-th element of the outcome list using outcome[[i]]
+
+                # tmp_wr_cumulative$call$outcome$outc1[i] also isn't getting the level name - see how your code returns death, then s then t2death
+                # If you had a fourth level in the plot it'd crash because there's only three elements in the list
+
+                # based on ?winratio, the name you're looking for is going to be the first element of outcome[[i]],
+
+                # which is outcome[[i]][[1]]
+                # For continuous and survival data, this will be a list of values - you'll need to collapse it
+                # down to a single value by doing something like:
+
+                # level_name <- outcome[[i]][[1]]
+                # if(length(level_name)>1) level_name <- paste(level_name,collapse=",")
+
+                # and then use the newly created level_name variable in the call below
+                data.frame(level=i, level_names=tmp_wr_cumulative$call$outcome$outc1[i],
+                           win_inherit=(tmp_wr_cumulative$total.wins-tmp_wr_cumulative$wins[i]), win=tmp_wr_cumulative$wins[i],
+                           tie=tmp_wr_cumulative$total.ties,
+                           loss=tmp_wr_cumulative$loss[i], loss_inherit=(tmp_wr_cumulative$total.loss-tmp_wr_cumulative$loss[i]),
+                           win_ratio=(tmp_wr_cumulative$wins[i]/tmp_wr_cumulative$loss[i]),
+                           ci_lower=tmp_wr_individual$wr.lower, ci_upper=tmp_wr_individual$wr.upper,
+                           win_ratio_cum=tmp_wr_cumulative$wr,
+                           ci_lower_cum=tmp_wr_cumulative$wr.lower, ci_upper_cum=tmp_wr_cumulative$wr.upper
+                           )
         }
         )
 
@@ -32,6 +59,21 @@ winRatioPlot <- function(dataframe, id, trt, active, outcomes, fu)
                                    win_ratio_cum=wr$wr, ci_lower_cum=wr$wr.lower, ci_upper_cum=wr$wr.upper)
 
         df <- rbind(wr_dataframe, overall_line)
+
+
+
+        # TODO: You shouldn't need to write plotting code here!
+        # Once you have your data frame in the appropriate format, just run the following
+
+        # WinRatioPlot::winRatioPlot(df)
+
+        # and end the function. This will mean that you only have one copy of the plotting code
+        # that needs to be maintained, and if we want to make improvements to the plot we just do it there.
+
+        # It also means that if there was another package we wanted to add plotting ability for, we just have to write
+        # a new function for it like what we've done here here.
+
+
 
 
         # # Include some checks to ensure that the argument inserted is a dataframe and that the necessary variables
@@ -49,8 +91,12 @@ winRatioPlot <- function(dataframe, id, trt, active, outcomes, fu)
         #         stop("Missing or different variable name: check win variable is labelled 'win'")
         # }
 
+
         # Sort data in ascending level in case dataframe is out of level order
         df <- df[order(df$level),]
+
+
+
 
         # Create a list of level names to use later in plot (reverse order given the plot is reversed)
         level_label_names_list <- rev(as.list(df$level_names))
@@ -75,6 +121,11 @@ winRatioPlot <- function(dataframe, id, trt, active, outcomes, fu)
 
         # Set box width
         df_long$width <- ifelse(df_long$level==max(df_long$level), 0.6,1)
+
+
+
+
+
 
         # Win ratio plot with no space between levels and overall line
         wr_box_overall2 <- ggplot(df_long) +
@@ -136,9 +187,16 @@ winRatioPlot <- function(dataframe, id, trt, active, outcomes, fu)
 }
 
 
-winRatioPlot(id = "id", trt = "trt", active = "Treatment",
-         outcomes = list(outc1 = c("death", "s", "t2death"),
-                         outc2 = list(paste0("recurr", 1:9), "r", paste0("t2recurr", 1:9)),
-                         outc3 = c("size", "c", ">")),
+
+# NOTE: you can't have any code like this in any file inside the R directory - it should be functions only.
+# If the below code will stop R from building the package with the new function
+
+data_test <- read.csv("test_data.csv")
+
+wr <- winratio(id = "id", trt = "trt", active = "Treatment",
+               outcomes = list(outc1 = c("death", "s", "t2death"),
+                               outc2 = list(paste0("recurr", 1:9), "r", paste0("t2recurr", 1:9)),
+                               outc3 = c("size", "c", ">")),
          fu = "t2death", data = df)
 
+plot(wr)
