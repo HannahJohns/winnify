@@ -6,17 +6,15 @@
 # Win ratio plot function
 plot.WinRatio <- function(wr)
 {
-        library(WinRatio)
-
         # Extract data and create dataframe
         wr_output_list <- lapply(1:length(wr$call$outcomes), function(i) {
 
                 # Get estimates for win ratio based on outcome i and outcomes 1 to i
-                tmp_wr_individual <- winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
+                tmp_wr_individual <- WinRatio::winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
                                               outcomes = wr$call$outcomes[i],
                                               fu = wr$call$fu, data = wr$call$data)
 
-                tmp_wr_cumulative <- winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
+                tmp_wr_cumulative <- WinRatio::winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
                                 outcomes = wr$call$outcomes[1:i],
                                 fu = wr$call$fu, data = wr$call$data)
 
@@ -40,19 +38,11 @@ plot.WinRatio <- function(wr)
                                    win_ratio=wr$wr, ci_lower=wr$wr.lower, ci_upper=wr$wr.upper,
                                    win_ratio_cum=wr$wr, ci_lower_cum=wr$wr.lower, ci_upper_cum=wr$wr.upper)
 
+        # Bind overall line dataframe to wr_dataframe for plotting
         df <- rbind(wr_dataframe, overall_line)
 
-
-        # TODO: You shouldn't need to write plotting code here!
-        # Once you have your data frame in the appropriate format, just run the following
-
-        # WinRatioPlot::winRatioPlot(df)
-
-        # and end the function. This will mean that you only have one copy of the plotting code
-        # that needs to be maintained, and if we want to make improvements to the plot we just do it there.
-
-        # It also means that if there was another package we wanted to add plotting ability for, we just have to write
-        # a new function for it like what we've done here here.
+        # Plot figure
+        WinRatioPlot::winRatioPlot(df, tie_handling="drop")
 
 }
 
