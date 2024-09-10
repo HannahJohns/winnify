@@ -22,10 +22,10 @@ plot.WinRatio <- function(wr)
                            win_inherit=(tmp_wr_cumulative$total.wins-tmp_wr_cumulative$wins[i]), win=tmp_wr_cumulative$wins[i],
                            tie=tmp_wr_cumulative$total.ties,
                            loss=tmp_wr_cumulative$loss[i], loss_inherit=(tmp_wr_cumulative$total.loss-tmp_wr_cumulative$loss[i]),
-                           win_ratio=tmp_wr_individual$wr,
-                           ci_lower=tmp_wr_individual$wr.lower, ci_upper=tmp_wr_individual$wr.upper,
-                           win_ratio_cum=tmp_wr_cumulative$wr,
-                           ci_lower_cum=tmp_wr_cumulative$wr.lower, ci_upper_cum=tmp_wr_cumulative$wr.upper
+                           win_ratio_individual=tmp_wr_individual$wr,
+                           ci_lower_individual=tmp_wr_individual$wr.lower, ci_upper_individual=tmp_wr_individual$wr.upper,
+                           win_ratio_cumulative=tmp_wr_cumulative$wr,
+                           ci_lower_cumulative=tmp_wr_cumulative$wr.lower, ci_upper_cumulative=tmp_wr_cumulative$wr.upper
                            )
         }
         )
@@ -35,8 +35,8 @@ plot.WinRatio <- function(wr)
         # Create a dataframe with overall data line info
         overall_line <- data.frame(level=(length(wr$call$outcomes)+1), level_names="Overall", win_inherit=0, win=wr$total.wins,
                                    tie=wr$total.ties, loss=wr$total.loss, loss_inherit=0,
-                                   win_ratio=wr$wr, ci_lower=wr$wr.lower, ci_upper=wr$wr.upper,
-                                   win_ratio_cum=wr$wr, ci_lower_cum=wr$wr.lower, ci_upper_cum=wr$wr.upper)
+                                   win_ratio_individual=wr$wr, ci_lower_individual=wr$wr.lower, ci_upper_individual=wr$wr.upper,
+                                   win_ratio_cumulative=wr$wr, ci_lower_cumulative=wr$wr.lower, ci_upper_cumulative=wr$wr.upper)
 
         # Bind overall line dataframe to wr_dataframe for plotting
         df <- rbind(wr_dataframe, overall_line)

@@ -1,23 +1,24 @@
 # Win ratio plot function
 winRatioPlot <- function(df,tie_handling=NA,
                          level="level", level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
-                         loss="loss", loss_inherit="loss_inherit", win_ratio="win_ratio", ci_lower="ci_lower", ci_upper="ci_upper",
-                         win_ratio_cum="win_ratio_cum", ci_lower_cum="ci_lower_cum", ci_upper_cum="ci_upper_cum")
+                         loss="loss", loss_inherit="loss_inherit",
+                         win_ratio_individual="win_ratio_individual", ci_lower_individual="ci_lower_individual", ci_upper_individual="ci_upper_individual",
+                         win_ratio_cumulative="win_ratio_cumulative", ci_lower_cumulative="ci_lower_cumulative", ci_upper_cumulative="ci_upper_cumulative")
 {
 
         # Include some checks to ensure that the argument inserted is a dataframe and that the necessary variables
         # are included in the dataframe and stop and report an error message if they are missing
         target_names <- c(level="level", level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
-                          loss="loss", loss_inherit="loss_inherit", win_ratio="win_ratio", ci_lower="ci_lower", ci_upper="ci_upper",
-                          win_ratio_cum="win_ratio_cum", ci_lower_cum="ci_lower_cum", ci_upper_cum="ci_upper_cum")
-        names(target_names) <- c(level, level_names, win_inherit, win, tie, loss, loss_inherit, win_ratio,
-                                 ci_lower, ci_upper, win_ratio_cum, ci_lower_cum, ci_upper_cum)
+                          loss="loss", loss_inherit="loss_inherit",
+                          win_ratio="win_ratio_individual", ci_lower="ci_lower_individual", ci_upper="ci_upper_individual",
+                          win_ratio_cum="win_ratio_cumulative", ci_lower_cum="ci_lower_cumulative", ci_upper_cum="ci_upper_cumulative")
+        names(target_names) <- c(level, level_names, win_inherit, win, tie, loss, loss_inherit, win_ratio_individual,
+                                 ci_lower_individual, ci_upper_individual, win_ratio_cumulative, ci_lower_cumulative, ci_upper_cumulative)
         colnames(df) <- ifelse(is.na(target_names[colnames(df)]),colnames(df),target_names[colnames(df)])
 
         expected_names <- c("level", "level_names", "win_inherit", "win", "tie",
-                          "loss", "loss_inherit", "win_ratio", "ci_lower", "ci_upper",
-                          "loss", "loss_inherit", "win_ratio", "ci_lower", "ci_upper",
-                          "win_ratio_cum", "ci_lower_cum", "ci_upper_cum")
+                          "loss", "loss_inherit", "win_ratio_individual", "ci_lower_individual", "ci_upper_individual",
+                          "win_ratio_cumulative", "ci_lower_cumulative", "ci_upper_cumulative")
 
         if(length(setdiff(expected_names, colnames(df)) >0)) {
                 stop(sprintf("Missing variables for: %s. Check input dataframe contains these variables.",
@@ -192,13 +193,30 @@ winRatioPlot <- function(df,tie_handling=NA,
                                              xmin=c((max(df$level)+overall_box_width/2),(max(df$level)+overall_box_width/2)),
                                              xmax=c(outcome_box_width/2,outcome_box_width/2),
                                              ymin=c(0,1),
-                                             ymax=c(1,max(df$ci_upper)))
+                                             ymax=c(1,max(df$ci_upper_individual)))
 
         background_colourpanel$favours_int <- factor(background_colourpanel$favours_int,
                                                      levels = c(0,1),
                                                      labels = c("Favours control", "Favours intervention"))
 
+        # Create a long format of the dataframe with just the data for the forest plot
+        drop <- c("win_inherit", "win", "tie", "loss", "loss_inherit")
+        df_forest_wide <- df[ , !(names(df) %in% drop)]
 
+        df_forest <- tidyr::pivot_longer(df_forest_wide,
+                                  cols = 3:8,
+                                  names_pattern = "(.*)(_individual|_cumulative)$",
+                                  names_to = c(".value", "outcome_type")
+        )
+
+
+        # ggplot2::ggplot(data = df_forest, ggplot2::aes(y=level, color=outcome_type))+
+        #         ggplot2::geom_errorbar(
+        #                 aes(xmin=ci_lower,xmax=ci_upper)
+        #         )+
+        #         ggplot2::geom_point(
+        #                 ggplot2::aes(xmin=ci_lower,xmax=ci_upper,shape=outcome_type)
+        #         ) +
         # TODO: You need to pivot df so that it looks like:
         #
         # level, level_names, outcome_type, win_ratio, ci_lower, ci_upper
@@ -239,21 +257,21 @@ winRatioPlot <- function(df,tie_handling=NA,
                 ggplot2::geom_errorbar(data=df[df$level<max(df$level), ],
                                        ggplot2::aes(
                                                x=level-forest_plot_line_offset,
-                                               ymin=ci_lower, ymax=ci_upper,
+                                               ymin=ci_lower_individual, ymax=ci_upper_individual,
                                                color="Outcome win ratio"
                                                ),
                                        width=0) +
                 ggplot2::geom_point(data=df[df$level<max(df$level), ],
                                     ggplot2::aes(
                                             x=level-forest_plot_line_offset,
-                                            y=win_ratio,
+                                            y=win_ratio_individual,
                                             color="Outcome win ratio"),
                                     size=2.5,
                                     shape=4) +
                 ggplot2::geom_line(data=df[df$level<max(df$level), ],
                                    ggplot2::aes(
                                            x=level+forest_plot_line_offset,
-                                           y=win_ratio_cum
+                                           y=win_ratio_cumulative
                                            ),
                                    color="black",
                                    linetype="dashed"
@@ -261,8 +279,8 @@ winRatioPlot <- function(df,tie_handling=NA,
                 ggplot2::geom_errorbar(data=df[df$level<max(df$level), ],
                                        ggplot2::aes(
                                                x=level+forest_plot_line_offset,
-                                               ymin=ci_lower_cum,
-                                               ymax=ci_upper_cum,
+                                               ymin=ci_lower_cumulative,
+                                               ymax=ci_upper_cumulative,
                                                color="Cumulative win ratio"
                                         ),
                                        width=0
@@ -270,7 +288,7 @@ winRatioPlot <- function(df,tie_handling=NA,
                 ggplot2::geom_point(data=df[df$level<max(df$level), ],
                                     ggplot2::aes(
                                             x=level+forest_plot_line_offset,
-                                            y=win_ratio_cum,
+                                            y=win_ratio_cumulative,
                                             color="Cumulative win ratio"
                                     ),
                                     size=2.5
@@ -280,10 +298,10 @@ winRatioPlot <- function(df,tie_handling=NA,
                                 x=c(max(df$level)-forest_plot_polygon_height/2, max(df$level),
                                     max(df$level)+forest_plot_polygon_height/2, max(df$level)
                                     ),
-                                y=c(df[df$level==max(df$level), "win_ratio"],
-                                    df[df$level==max(df$level), "ci_upper"],
-                                    df[df$level==max(df$level), "win_ratio"],
-                                    df[df$level==max(df$level), "ci_lower"]
+                                y=c(df[df$level==max(df$level), "win_ratio_individual"],
+                                    df[df$level==max(df$level), "ci_upper_individual"],
+                                    df[df$level==max(df$level), "win_ratio_individual"],
+                                    df[df$level==max(df$level), "ci_lower_individual"]
                                     )
                         ),
                         ggplot2::aes(x=x, y=y)

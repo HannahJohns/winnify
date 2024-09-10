@@ -15,8 +15,12 @@ outcomes = list(outc1 = c("death", "s", "t2death"),
                 outc3 = c("size", "c", ">")),
 fu = "t2death", data = data_test)
 
+
+WinRatioPlot::plot.WinRatio(wr)
+
+##############################################
 # summary(wr)
-ggp <- plot.WinRatio(wr)
+ggp <- WinRatioPlot::plot.WinRatio(wr)
 
 get_legend(ggp[[1]])
 
@@ -27,7 +31,7 @@ ggarrange(
 ggp_legend_1 <- get_legend(ggp[[1]])
 ggp_legend_2 <- get_legend(ggp[[2]])
 
-l
+
 
 cowplot::plot_grid(ggp[[1]]+theme(legend.position = "none"),
                    ggp[[2]]+theme(legend.position = "none"),
