@@ -4,8 +4,6 @@ winRatioPlot <- function(df,tie_handling=NA,
                          loss="loss", loss_inherit="loss_inherit", win_ratio="win_ratio", ci_lower="ci_lower", ci_upper="ci_upper",
                          win_ratio_cum="win_ratio_cum", ci_lower_cum="ci_lower_cum", ci_upper_cum="ci_upper_cum")
 {
-        # library(tidyverse)
-        # library(patchwork)
 
         # Include some checks to ensure that the argument inserted is a dataframe and that the necessary variables
         # are included in the dataframe and stop and report an error message if they are missing
@@ -39,6 +37,7 @@ winRatioPlot <- function(df,tie_handling=NA,
         # Create a list of level names to use later in plot (reverse order given the plot is reversed)
         level_label_names_list <- rev(as.list(df$level_names))
 
+
         # Put dataframe in long form
         df_long <- tidyr::pivot_longer(df,
                                 c(loss_inherit,loss,tie,win,win_inherit),
@@ -50,7 +49,9 @@ winRatioPlot <- function(df,tie_handling=NA,
 
         # Create a proportion variable for each level
         df_long$p <- df_long$n
-        for(i in unique(df_long$level)) df_long[df_long$level == i,"p"] <- df_long[df_long$level == i,"p"]/sum(df_long[df_long$level == i,"p"])
+        for(i in unique(df_long$level)){
+                df_long[df_long$level == i,"p"] <- df_long[df_long$level == i,"p"]/sum(df_long[df_long$level == i,"p"])
+        }
 
         df_long <- do.call("rbind",by(df_long,df_long$level,function(df_rb){
                 df_rb$p_prev <- ((cumsum(df_rb$p)-df_rb$p))
@@ -63,53 +64,127 @@ winRatioPlot <- function(df,tie_handling=NA,
 
         # Win ratio plot with separate overall line
         wr_box_overall2 <- ggplot2::ggplot(df_long) +
-                geom_rect(aes(xmin=level-width/2,xmax=level+width/2,
-                              ymin=p_prev,ymax=p_prev+p,fill=pairType), color="black") +
-                scale_x_reverse(breaks=c(max(df_long$level):1),
-                                labels=level_label_names_list,
-                                minor_break=NULL, limits=c(max(df_long$level)+overall_box_width/2,outcome_box_width/2)) +
-                scale_fill_manual(values = c("tan1", "red2", "khaki1", "forestgreen", "#97d42c")) +
-                guides(fill = guide_legend(title = "Treatment comparison", title.theme = element_text(face = "bold"))) +
-                coord_flip() +
-                ylab(expression(bold("Proportion (intervention vs control)"))) +
-                theme_bw() +
-                theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
-
+                ggplot2::geom_rect(
+                                ggplot2::aes(
+                                        xmin=level-width/2,
+                                        xmax=level+width/2,
+                                        ymin=p_prev,
+                                        ymax=p_prev+p,
+                                        fill=pairType
+                                        ),
+                                color="black"
+                                ) +
+                ggplot2::scale_x_reverse(
+                        breaks=c(max(df_long$level):1),
+                        labels=level_label_names_list,
+                        minor_break=NULL,
+                        limits=c(
+                                max(df_long$level)+overall_box_width/2,
+                                outcome_box_width/2
+                                )
+                ) +
+                ggplot2::scale_fill_manual(
+                        values = c(
+                                   "tan1",
+                                   "red2",
+                                   "khaki1",
+                                   "forestgreen",
+                                   "#97d42c"
+                                   )
+                ) +
+                ggplot2::guides(
+                        fill = ggplot2::guide_legend(
+                                title = "Treatment comparison",
+                                title.theme = ggplot2::element_text(face = "bold")
+                        )
+                ) +
+                ggplot2::coord_flip() +
+                ggplot2::ylab(
+                        expression(bold("Proportion (intervention vs control)"))
+                ) +
+                ggplot2::theme_bw() +
+                ggplot2::theme(
+                        panel.grid.major.y = ggplot2::element_blank(),
+                        panel.grid.minor.y = ggplot2::element_blank()
+                )
 
         if(tie_handling=="drop"){
                 # drop: ties_start + losses/(wins+losses)*ties
-                dash_ties_start <- unname(unlist(df_long[df_long$level==max(df_long$level) & df_long$pairType=="Ties","p_prev"]))
-                dash_wins <- unname(unlist(df_long[df_long$level==max(df_long$level) & df_long$pairType=="Wins","p"]))
-                dash_losses <- unname(unlist(df_long[df_long$level==max(df_long$level) & df_long$pairType=="Losses","p"]))
-                dash_ties <- unname(unlist(df_long[df_long$level==max(df_long$level) & df_long$pairType=="Ties","p"]))
+                dash_ties_start <- unname(unlist(
+                        df_long[
+                                df_long$level==max(df_long$level) & df_long$pairType=="Ties",
+                                "p_prev"
+                                ]
+                        ))
+
+                dash_wins <- unname(unlist(
+                        df_long[
+                                df_long$level==max(df_long$level) & df_long$pairType=="Wins",
+                                "p"
+                                ]
+                        ))
+
+                dash_losses <- unname(unlist(
+                        df_long[
+                                df_long$level==max(df_long$level) & df_long$pairType=="Losses",
+                                "p"
+                                ]
+                        ))
+
+                dash_ties <- unname(unlist(
+                        df_long[
+                                df_long$level==max(df_long$level) & df_long$pairType=="Ties",
+                                "p"
+                                ]
+                        ))
 
                 dash_x <- max(df_long$level)-overall_box_width/2
                 dash_xend <- max(df_long$level)+overall_box_width/2
                 y_dash <- dash_ties_start + dash_losses/(dash_losses+dash_wins)*dash_ties
 
-                wr_box_overall2 <- wr_box_overall2 + annotate("segment",
-                                                              y=y_dash,
-                                                              yend=y_dash,
-                                                              x=dash_x,
-                                                              xend=dash_xend,
-                                                              linetype="dashed") + xlab(NULL)
+                wr_box_overall2 <- wr_box_overall2 +
+                                   ggplot2::annotate(
+                                           "segment",
+                                            y=y_dash,
+                                            yend=y_dash,
+                                            x=dash_x,
+                                            xend=dash_xend,
+                                            linetype="dashed"
+                                           ) +
+                                   ggplot2::xlab(NULL)
         }
 
         if(tie_handling=="split"){
+
                 # split: ties_start + 0.5*ties
-                dash_ties_start <- unname(unlist(df_long[df_long$level==max(df_long$level) & df_long$pairType=="Ties","p_prev"]))
-                dash_ties <- unname(unlist(df_long[df_long$level==max(df_long$level) & df_long$pairType=="Ties","p"]))
+                dash_ties_start <- unname(unlist(
+                                df_long[
+                                df_long$level==max(df_long$level) & df_long$pairType=="Ties",
+                                "p_prev"
+                                ]
+                                ))
+
+                dash_ties <- unname(unlist(
+                                df_long[
+                                df_long$level==max(df_long$level) & df_long$pairType=="Ties",
+                                "p"
+                                ]
+                                ))
 
                 dash_x <- max(df_long$level)-overall_box_width/2
                 dash_xend <- max(df_long$level)+overall_box_width/2
                 y_dash <- dash_ties_start + 0.5*dash_ties
 
-                wr_box_overall2 <- wr_box_overall2 + annotate("segment",
-                                                              y=y_dash,
-                                                              yend=y_dash,
-                                                              x=dash_x,
-                                                              xend=dash_xend,
-                                                              linetype="dashed") + xlab(NULL)
+                wr_box_overall2 <- wr_box_overall2 +
+                        ggplot2::annotate(
+                                "segment",
+                                y=y_dash,
+                                yend=y_dash,
+                                x=dash_x,
+                                xend=dash_xend,
+                                linetype="dashed"
+                        ) +
+                        ggplot2::xlab(NULL)
         }
 
         # Create dataframe with info to make the green and red background panels for forest plot
@@ -124,42 +199,115 @@ winRatioPlot <- function(df,tie_handling=NA,
                                                      labels = c("Favours control", "Favours intervention"))
 
 
+        # TODO: You need to pivot df so that it looks like:
+        #
+        # level, level_names, outcome_type, win_ratio, ci_lower, ci_upper
+        # 1      outc1          individual   ....       .....    ....
+        # 1      outc1          cumulative   ....       .....    ....
+        # 2      outc2          individual   ....       .....    ....
+        # 2      outc2          cumulative   ....       .....    ....
+
+        # and then you can just go:
+        # ggplot(aes(x=level,color=,color=outcome_type))+
+        #     geom_errorbar(
+        #        aes(ymin=ci_lower,ymax=ci_upper)
+        #     )+
+        #     geom_point(
+        #        aes(ymin=ci_lower,ymax=ci_upper,shape=outcome_type)
+        #     )
+        # And you'll be done - no need to do the subsetting you're currently doing
+
+        # NOTE: you don't need the win/loss/tie proportions for this data sheet, you
+        # can drop the columns if it's making it harder to work with
+
         # Win ratio forest plot with overall level as separate diamond and cumulative win ratio (annotated version has axis limit adjusted to make extra space)
         wr_forest_overall_diamond_cum2 <- ggplot2::ggplot(df) +
-                geom_rect(data=background_colourpanel, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fill=favours_int), alpha=0.15) +
-                scale_fill_manual(values=c("#D10707", "#45E928")) +
-                geom_hline(yintercept=1,color="#1A2678") +
-                geom_errorbar(data=df[df$level<max(df$level), ],
-                              aes(x=level-forest_plot_line_offset, ymin=ci_lower, ymax=ci_upper, color="Outcome win ratio"), width=0) +
-                geom_point(data=df[df$level<max(df$level), ],
-                           aes(x=level-forest_plot_line_offset, y=win_ratio, color="Outcome win ratio"), size=2.5, shape=4) +
-                geom_line(data=df[df$level<max(df$level), ],
-                          aes(x=level+forest_plot_line_offset,y=win_ratio_cum), color="black", linetype="dashed") +
-                geom_errorbar(data=df[df$level<max(df$level), ],
-                              aes(x=level+forest_plot_line_offset, ymin=ci_lower_cum, ymax=ci_upper_cum, color="Cumulative win ratio"), width=0) +
-                geom_point(data=df[df$level<max(df$level), ],
-                           aes(x=level+forest_plot_line_offset, y=win_ratio_cum, color="Cumulative win ratio"), size=2.5) +
-                geom_polygon(data = data.frame(x=c(max(df$level)-forest_plot_polygon_height/2, max(df$level),
-                                                   max(df$level)+forest_plot_polygon_height/2, max(df$level)),
-                                               y=c(df[df$level==max(df$level), "win_ratio"],
-                                                   df[df$level==max(df$level), "ci_upper"],
-                                                   df[df$level==max(df$level), "win_ratio"],
-                                                   df[df$level==max(df$level), "ci_lower"])),
-                             aes(x=x, y=y)) +
-                scale_x_reverse(breaks=NULL, limits=c(max(df$level)+overall_box_width/2,outcome_box_width/2)) +
-                scale_y_continuous(limits=c(0,NA)) +
-                xlab(NULL) +
-                ylab(expression(bold("Win ratio"))) +
-                guides(color = guide_legend(reverse = TRUE, title = NULL), fill = guide_legend(title = NULL)) +
-                scale_color_manual(values=c("black", "grey40")) +
-                coord_flip() +
-                theme_bw()
+                ggplot2::geom_rect(data=background_colourpanel,
+                                   ggplot2::aes(
+                                           xmin=xmin,
+                                           xmax=xmax,
+                                           ymin=ymin,
+                                           ymax=ymax,
+                                           fill=favours_int
+                                           ),
+                                   alpha=0.15) +
+                ggplot2::scale_fill_manual(
+                        values=c("#D10707",
+                                 "#45E928")
+                        ) +
+                ggplot2::geom_hline(yintercept=1,color="#1A2678") +
+                ggplot2::geom_errorbar(data=df[df$level<max(df$level), ],
+                                       ggplot2::aes(
+                                               x=level-forest_plot_line_offset,
+                                               ymin=ci_lower, ymax=ci_upper,
+                                               color="Outcome win ratio"
+                                               ),
+                                       width=0) +
+                ggplot2::geom_point(data=df[df$level<max(df$level), ],
+                                    ggplot2::aes(
+                                            x=level-forest_plot_line_offset,
+                                            y=win_ratio,
+                                            color="Outcome win ratio"),
+                                    size=2.5,
+                                    shape=4) +
+                ggplot2::geom_line(data=df[df$level<max(df$level), ],
+                                   ggplot2::aes(
+                                           x=level+forest_plot_line_offset,
+                                           y=win_ratio_cum
+                                           ),
+                                   color="black",
+                                   linetype="dashed"
+                                   ) +
+                ggplot2::geom_errorbar(data=df[df$level<max(df$level), ],
+                                       ggplot2::aes(
+                                               x=level+forest_plot_line_offset,
+                                               ymin=ci_lower_cum,
+                                               ymax=ci_upper_cum,
+                                               color="Cumulative win ratio"
+                                        ),
+                                       width=0
+                                       ) +
+                ggplot2::geom_point(data=df[df$level<max(df$level), ],
+                                    ggplot2::aes(
+                                            x=level+forest_plot_line_offset,
+                                            y=win_ratio_cum,
+                                            color="Cumulative win ratio"
+                                    ),
+                                    size=2.5
+                                    ) +
+                ggplot2::geom_polygon(
+                        data = data.frame(
+                                x=c(max(df$level)-forest_plot_polygon_height/2, max(df$level),
+                                    max(df$level)+forest_plot_polygon_height/2, max(df$level)
+                                    ),
+                                y=c(df[df$level==max(df$level), "win_ratio"],
+                                    df[df$level==max(df$level), "ci_upper"],
+                                    df[df$level==max(df$level), "win_ratio"],
+                                    df[df$level==max(df$level), "ci_lower"]
+                                    )
+                        ),
+                        ggplot2::aes(x=x, y=y)
+                ) +
+                ggplot2::scale_x_reverse(
+                        breaks=NULL,
+                        limits=c(
+                                max(df$level)+overall_box_width/2,
+                                outcome_box_width/2
+                                )
+                ) +
+                ggplot2::scale_y_continuous(limits=c(0,NA)) +
+                ggplot2::xlab(NULL) +
+                ggplot2::ylab(expression(bold("Win ratio"))) +
+                ggplot2::guides(
+                            color = ggplot2::guide_legend(reverse = TRUE, title = NULL),
+                            fill = ggplot2::guide_legend(title = NULL)
+                ) +
+                ggplot2::scale_color_manual(values=c("black", "grey40")) +
+                ggplot2::coord_flip() +
+                ggplot2::theme_bw()
 
-        # Combine plots
-        list(
-        wr_box_overall2,
-        wr_forest_overall_diamond_cum2
-        )
+        patchwork::wrap_plots(wr_box_overall2, wr_forest_overall_diamond_cum2) + patchwork::plot_layout(guides = 'collect')
+
 
 }
 

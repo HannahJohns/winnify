@@ -6,11 +6,6 @@
 #########################################################################################
 
 rm(list=ls())
-library(ggplot2)
-library(ggforce)
-
-library(cowplot)
-
 
 data_test <- read.csv("test_data.csv")
 
@@ -67,16 +62,18 @@ ggplot()+
 # str(ggp)
 #
 #
-# gg1 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=cyl))+ggplot2::geom_point()
-# gg2 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=wt))+ggplot2::geom_point()
+
+# remove.packages("patchwork")
+install.packages("patchwork")
+gg1 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=cyl))+ggplot2::geom_point()
+gg2 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=wt))+ggplot2::geom_point()
 #
 # ?patchwork:::`-.ggplot`
 #
-# gg1 + gg2
 
 
-
-
+patchwork:::as_patch.ggplot(gg1)
+patchwork:::as_patch.ggplot(gg2)
 
 # Load survival package to use the dataset 'bladder1'
 # library(survival)
