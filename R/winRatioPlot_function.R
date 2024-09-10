@@ -156,7 +156,11 @@ winRatioPlot <- function(df,tie_handling=NA,
                 theme_bw()
 
         # Combine plots
-        wr_box_overall2 + wr_forest_overall_diamond_cum2 + patchwork::plot_layout(guides = 'collect')
+        list(
+        wr_box_overall2,
+        wr_forest_overall_diamond_cum2
+        )
+
 }
 
 

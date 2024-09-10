@@ -1,31 +1,82 @@
 
-library(WinRatio)
-library(WinRatioPlot)
-?WinRatio::winratio
+# library(WinRatio)
+# library(WinRatioPlot)
+# ?WinRatio::winratio
 
 #########################################################################################
+
+rm(list=ls())
+library(ggplot2)
+library(ggforce)
+
+library(cowplot)
+
+
 data_test <- read.csv("test_data.csv")
 
-wr <- winratio(id = "id", trt = "trt", active = "Treatment",
-               outcomes = list(outc1 = c("death", "s", "t2death"),
-                               outc2 = list(paste0("recurr", 1:9), "r", paste0("t2recurr", 1:9)),
-                               outc3 = c("size", "c", ">")),
-               fu = "t2death", data = data_test)
+wr <- WinRatio::winratio(id = "id", trt = "trt", active = "Treatment",
+outcomes = list(outc1 = c("death", "s", "t2death"),
+                outc2 = list(paste0("recurr", 1:9), "r", paste0("t2recurr", 1:9)),
+                outc3 = c("size", "c", ">")),
+fu = "t2death", data = data_test)
 
-summary(wr)
+# summary(wr)
 ggp <- plot.WinRatio(wr)
 
-ggp
-str(ggp)
+get_legend(ggp[[1]])
+
+ggarrange(
+        ggp[[1]],
+        ggp[[2]],common.legend = F
+)
+ggp_legend_1 <- get_legend(ggp[[1]])
+ggp_legend_2 <- get_legend(ggp[[2]])
+
+l
+
+cowplot::plot_grid(ggp[[1]]+theme(legend.position = "none"),
+                   ggp[[2]]+theme(legend.position = "none"),
+                   NULL,
+                   plot_grid(
+                           ggp_legend_2+theme(legend.text = element_text(18)),
+                           NULL,
+                           ggp_legend_1,
+                           ncol = 1,rel_heights=c(1,-0.6,1),axis="l"
+                   ),
+                   nrow = 1,
+                   rel_widths = c(1,1,-1,1)
+                   )
+
+ggarrange(
+        ggp[[1]],
+        ggp[[2]],common.legend = F
+)
 
 
-gg1 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=cyl))+ggplot2::geom_point()
-gg2 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=wt))+ggplot2::geom_point()
+ggplot()+
+        xlim(0,10)+
+        annotate(geom="rect",xmin=0,xmax=1,ymin=0,ymax=1,fill="dark red")+
+        annotate(geom="text",x=1,y=0.5,label="Inherited losses",hjust=0)+
+        annotate(geom="rect",xmin=0,xmax=1,ymin=1,ymax=2,fill="red")+
 
-gg1+gg2
+        annotate(geom="segment",x=0,xend=1,y=5,yend=5)+
+        annotate(geom="point",x=0.5,y=5,size=5)
 
 
-#########################################################################################
+# ggp
+# str(ggp)
+#
+#
+# gg1 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=cyl))+ggplot2::geom_point()
+# gg2 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=wt))+ggplot2::geom_point()
+#
+# ?patchwork:::`-.ggplot`
+#
+# gg1 + gg2
+
+
+
+
 
 # Load survival package to use the dataset 'bladder1'
 # library(survival)
