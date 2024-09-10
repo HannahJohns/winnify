@@ -5,7 +5,7 @@ winRatioPlot <- function(df,tie_handling=NA,
                          win_ratio_cum="win_ratio_cum", ci_lower_cum="ci_lower_cum", ci_upper_cum="ci_upper_cum")
 {
         # library(tidyverse)
-        library(patchwork)
+        # library(patchwork)
 
         # Include some checks to ensure that the argument inserted is a dataframe and that the necessary variables
         # are included in the dataframe and stop and report an error message if they are missing

@@ -13,11 +13,17 @@ wr <- winratio(id = "id", trt = "trt", active = "Treatment",
                fu = "t2death", data = data_test)
 
 summary(wr)
-plot.WinRatio(wr)
+ggp <- plot.WinRatio(wr)
 
+ggp
 str(ggp)
 
-# ggp[[1]]
+
+gg1 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=cyl))+ggplot2::geom_point()
+gg2 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=wt))+ggplot2::geom_point()
+
+gg1+gg2
+
 
 #########################################################################################
 
