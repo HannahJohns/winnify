@@ -22,7 +22,14 @@ WinRatioPlot::plot.WinRatio(wr)
 # summary(wr)
 ggp <- WinRatioPlot::plot.WinRatio(wr)
 
-get_legend(ggp[[1]])
+ggp[[1]]
+ggp[[2]]
+
+summary(ggp)
+str(ggp)
+
+
+cowplot::get_legend(ggp[[1]])
 
 ggarrange(
         ggp[[1]],

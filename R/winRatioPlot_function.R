@@ -199,6 +199,7 @@ winRatioPlot <- function(df,tie_handling=NA,
                                                      levels = c(0,1),
                                                      labels = c("Favours control", "Favours intervention"))
 
+
         # Create a long format of the dataframe with just the data for the forest plot
         drop <- c("win_inherit", "win", "tie", "loss", "loss_inherit")
         df_forest_wide <- df[ , !(names(df) %in% drop)]
@@ -209,37 +210,16 @@ winRatioPlot <- function(df,tie_handling=NA,
                                   names_to = c(".value", "outcome_type")
         )
 
+        df_forest$level_offset <- ifelse(df_forest$outcome_type == "_individual",
+                                                                df_forest$level-forest_plot_line_offset,
+                                                                df_forest$level+forest_plot_line_offset)
+        df_forest$outcome_type <- factor(df_forest$outcome_type,
+                                         levels = c("_individual", "_cumulative"),
+                                         labels = c("Outcome win ratio", "Cumulative win ratio"))
 
-        # ggplot2::ggplot(data = df_forest, ggplot2::aes(y=level, color=outcome_type))+
-        #         ggplot2::geom_errorbar(
-        #                 aes(xmin=ci_lower,xmax=ci_upper)
-        #         )+
-        #         ggplot2::geom_point(
-        #                 ggplot2::aes(xmin=ci_lower,xmax=ci_upper,shape=outcome_type)
-        #         ) +
-        # TODO: You need to pivot df so that it looks like:
-        #
-        # level, level_names, outcome_type, win_ratio, ci_lower, ci_upper
-        # 1      outc1          individual   ....       .....    ....
-        # 1      outc1          cumulative   ....       .....    ....
-        # 2      outc2          individual   ....       .....    ....
-        # 2      outc2          cumulative   ....       .....    ....
 
-        # and then you can just go:
-        # ggplot(aes(x=level,color=,color=outcome_type))+
-        #     geom_errorbar(
-        #        aes(ymin=ci_lower,ymax=ci_upper)
-        #     )+
-        #     geom_point(
-        #        aes(ymin=ci_lower,ymax=ci_upper,shape=outcome_type)
-        #     )
-        # And you'll be done - no need to do the subsetting you're currently doing
-
-        # NOTE: you don't need the win/loss/tie proportions for this data sheet, you
-        # can drop the columns if it's making it harder to work with
-
-        # Win ratio forest plot with overall level as separate diamond and cumulative win ratio (annotated version has axis limit adjusted to make extra space)
-        wr_forest_overall_diamond_cum2 <- ggplot2::ggplot(df) +
+        # Win ratio forest plot with overall level as separate diamond and cumulative win ratio
+        wr_forest_overall_diamond_cum2 <- ggplot2::ggplot(df_forest) +
                 ggplot2::geom_rect(data=background_colourpanel,
                                    ggplot2::aes(
                                            xmin=xmin,
@@ -254,62 +234,37 @@ winRatioPlot <- function(df,tie_handling=NA,
                                  "#45E928")
                         ) +
                 ggplot2::geom_hline(yintercept=1,color="#1A2678") +
-                ggplot2::geom_errorbar(data=df[df$level<max(df$level), ],
-                                       ggplot2::aes(
-                                               x=level-forest_plot_line_offset,
-                                               ymin=ci_lower_individual, ymax=ci_upper_individual,
-                                               color="Outcome win ratio"
-                                               ),
-                                       width=0) +
-                ggplot2::geom_point(data=df[df$level<max(df$level), ],
-                                    ggplot2::aes(
-                                            x=level-forest_plot_line_offset,
-                                            y=win_ratio_individual,
-                                            color="Outcome win ratio"),
-                                    size=2.5,
-                                    shape=4) +
-                ggplot2::geom_line(data=df[df$level<max(df$level), ],
+                ggplot2::geom_line(data=df_forest[df_forest$level<max(df$level) & df_forest$outcome_type == "Cumulative win ratio", ],
                                    ggplot2::aes(
-                                           x=level+forest_plot_line_offset,
-                                           y=win_ratio_cumulative
+                                           x=level_offset,
+                                           y=win_ratio
                                            ),
                                    color="black",
                                    linetype="dashed"
                                    ) +
-                ggplot2::geom_errorbar(data=df[df$level<max(df$level), ],
-                                       ggplot2::aes(
-                                               x=level+forest_plot_line_offset,
-                                               ymin=ci_lower_cumulative,
-                                               ymax=ci_upper_cumulative,
-                                               color="Cumulative win ratio"
-                                        ),
-                                       width=0
-                                       ) +
-                ggplot2::geom_point(data=df[df$level<max(df$level), ],
-                                    ggplot2::aes(
-                                            x=level+forest_plot_line_offset,
-                                            y=win_ratio_cumulative,
-                                            color="Cumulative win ratio"
-                                    ),
-                                    size=2.5
-                                    ) +
+                ggplot2::geom_errorbar(data = df_forest[df_forest$level<max(df_forest$level), ],
+                                ggplot2::aes(ymin=ci_lower, ymax=ci_upper, x=level_offset, color=outcome_type), width=0
+                        ) +
+                ggplot2::geom_point(data = df_forest[df_forest$level<max(df_forest$level), ],
+                                ggplot2::aes(y=win_ratio, shape=outcome_type, x=level_offset, color=outcome_type), size=3
+                        ) +
                 ggplot2::geom_polygon(
                         data = data.frame(
-                                x=c(max(df$level)-forest_plot_polygon_height/2, max(df$level),
-                                    max(df$level)+forest_plot_polygon_height/2, max(df$level)
+                                x_coord=c(max(df_forest$level)-forest_plot_polygon_height/2, max(df_forest$level),
+                                    max(df_forest$level)+forest_plot_polygon_height/2, max(df_forest$level)
                                     ),
-                                y=c(df[df$level==max(df$level), "win_ratio_individual"],
-                                    df[df$level==max(df$level), "ci_upper_individual"],
-                                    df[df$level==max(df$level), "win_ratio_individual"],
-                                    df[df$level==max(df$level), "ci_lower_individual"]
+                                y_coord=c(unname(unlist(df_forest[df_forest$level==max(df_forest$level) & df_forest$outcome_type=="Outcome win ratio", "win_ratio"])),
+                                    unname(unlist(df_forest[df_forest$level==max(df_forest$level) & df_forest$outcome_type=="Outcome win ratio", "ci_upper"])),
+                                    unname(unlist(df_forest[df_forest$level==max(df_forest$level) & df_forest$outcome_type=="Outcome win ratio", "win_ratio"])),
+                                    unname(unlist(df_forest[df_forest$level==max(df_forest$level) & df_forest$outcome_type=="Outcome win ratio", "ci_lower"]))
                                     )
                         ),
-                        ggplot2::aes(x=x, y=y)
+                        ggplot2::aes(x=x_coord, y=y_coord)
                 ) +
                 ggplot2::scale_x_reverse(
                         breaks=NULL,
                         limits=c(
-                                max(df$level)+overall_box_width/2,
+                                max(df_forest$level)+overall_box_width/2,
                                 outcome_box_width/2
                                 )
                 ) +
@@ -317,15 +272,16 @@ winRatioPlot <- function(df,tie_handling=NA,
                 ggplot2::xlab(NULL) +
                 ggplot2::ylab(expression(bold("Win ratio"))) +
                 ggplot2::guides(
-                            color = ggplot2::guide_legend(reverse = TRUE, title = NULL),
+                            color = ggplot2::guide_legend(reverse = FALSE, title = NULL),
+                            shape = ggplot2::guide_legend(title = NULL),
                             fill = ggplot2::guide_legend(title = NULL)
                 ) +
-                ggplot2::scale_color_manual(values=c("black", "grey40")) +
+                ggplot2::scale_color_manual(values=c("grey40", "black")) +
+                ggplot2::scale_shape_manual(values=c(4,16)) +
                 ggplot2::coord_flip() +
                 ggplot2::theme_bw()
 
         patchwork::wrap_plots(wr_box_overall2, wr_forest_overall_diamond_cum2) + patchwork::plot_layout(guides = 'collect')
-
 
 }
 
