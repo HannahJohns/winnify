@@ -15,9 +15,12 @@ outcomes = list(outc1 = c("death", "s", "t2death"),
                 outc3 = c("size", "c", ">")),
 fu = "t2death", data = data_test)
 
-
 WinRatioPlot::plot.WinRatio(wr)
 
+ggp <- WinRatioPlot::plot.WinRatio(wr)
+
+
+class(ggp)
 ##############################################
 # summary(wr)
 ggp <- WinRatioPlot::plot.WinRatio(wr)

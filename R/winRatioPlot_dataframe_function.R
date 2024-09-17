@@ -1,9 +1,25 @@
-
-# Use a name like plot.x - what we're doing is producing what's called an S3 generic function
-# for the winratio plot.
-# https://adv-r.hadley.nz/s3.html
-
-# Win ratio plot function
+#' Win ratio plot function
+#'
+#' This is an extended explanation of what this function does
+#'
+#' @usage
+#' fun(arg1, arg2 = default, ...)
+#'
+#' @param df A data frame containing analysis results to be plotted
+#' @param tie_handling A string specifying ....
+#'
+#'
+#'@details
+#'Additional details...
+#'
+#'
+#'@return
+#' An object of type \code{patchwork} containing plot showing blah de blah
+#'
+#'
+#'
+#'
+#' @export
 plot.WinRatio <- function(wr)
 {
         # Extract data and create dataframe
@@ -42,7 +58,7 @@ plot.WinRatio <- function(wr)
         df <- rbind(wr_dataframe, overall_line)
 
         # Plot figure
-        WinRatioPlot::winRatioPlot(df, tie_handling="drop")
+        WinRatioPlot::winRatioPlot(df, tie_handling="drop", type="wr")
 
 }
 
