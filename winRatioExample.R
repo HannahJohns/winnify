@@ -19,8 +19,46 @@ WinRatioPlot::plot.WinRatio(wr)
 
 ggp <- WinRatioPlot::plot.WinRatio(wr)
 
-
 class(ggp)
+
+# Create test dataframe for plot with overall line
+test_data_overall_fn <- data.frame(level=1:5,
+                                   level_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing", "Overall"),
+                                   win_inherit=c(0,15,25,33,0),
+                                   win=c(15,10,8,15,48),
+                                   tie=c(80,60,40,15,15),
+                                   loss=c(5,10,12,10,37),
+                                   loss_inherit=c(0,5,15,27,0),
+                                   win_ratio=c(3,1,0.67,1.5,1.30),
+                                   ci_lower=c(2.6,0.6,0.27,1.1,1.10),
+                                   ci_upper=c(3.4,1.4,1.07,1.9,1.50),
+                                   win_ratio_cum=c(3,1.67,1.22,1.30,1.30),
+                                   ci_lower_cum=c(2.6,1.32,0.92,1.10,1.10),
+                                   ci_upper_cum=c(3.4,2.02,1.52,1.50,1.50))
+
+test_data_overall_fn2 <- subset(test_data_overall_fn, select = -c(level))
+
+WinRatioPlot::winRatioPlot(test_data_overall_fn, tie_handling="drop", type="wr", overall_line = TRUE,
+                           level="level", level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
+                           loss="loss", loss_inherit="loss_inherit",
+                           win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",
+                           win_ratio_cumulative="win_ratio_cum", ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
+
+WinRatioPlot::winRatioPlot(test_data_overall_fn2, tie_handling="drop", type="or", overall_line = FALSE,
+                           level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
+                           loss="loss", loss_inherit="loss_inherit",
+                           win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",
+                           win_ratio_cumulative="win_ratio_cum", ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
+
+test2 <- test_data_overall_fn2[,c(2,3,4,5,6,7,8,9,10,11,12,1)]
+test12 <- test_data_overall_fn[,c(2,3,4,5,6,7,8,9,10,11,12,13,1)]
+
+WinRatioPlot::winRatioPlot(test12, tie_handling="drop", type="or", overall_line = FALSE,
+                           level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
+                           loss="loss", loss_inherit="loss_inherit",
+                           win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",
+                           win_ratio_cumulative="win_ratio_cum", ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
+
 ##############################################
 # summary(wr)
 ggp <- WinRatioPlot::plot.WinRatio(wr)

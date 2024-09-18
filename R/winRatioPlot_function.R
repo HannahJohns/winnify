@@ -56,12 +56,16 @@
 #' Buyse M. Generalized pairwise comparisons of prioritized outcomes in the two-sample problem. Stat Med. 2010 Dec 30;29(30):3245-57. doi: 10.1002/sim.3923. PMID: 21170918.
 #'
 #'
-winRatioPlot <- function(df,type=NA, tie_handling=NA,
+winRatioPlot <- function(df,type=NA, tie_handling=NA, overall_line=TRUE,
                          level="level", level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
                          loss="loss", loss_inherit="loss_inherit",
                          win_ratio_individual="win_ratio_individual", ci_lower_individual="ci_lower_individual", ci_upper_individual="ci_upper_individual",
                          win_ratio_cumulative="win_ratio_cumulative", ci_lower_cumulative="ci_lower_cumulative", ci_upper_cumulative="ci_upper_cumulative")
 {
+        # If level ranking column "level" does not exist in df then first create this
+        if((level == "level") & ("level" %in% colnames(df) == FALSE)) {
+                df <- tibble::add_column(df, level = 1:nrow(df), .before = level_names)
+        }
 
         # Include some checks to ensure that the argument inserted is a dataframe and that the necessary variables
         # are included in the dataframe and stop and report an error message if they are missing
@@ -71,16 +75,35 @@ winRatioPlot <- function(df,type=NA, tie_handling=NA,
                           win_ratio_cum="win_ratio_cumulative", ci_lower_cum="ci_lower_cumulative", ci_upper_cum="ci_upper_cumulative")
         names(target_names) <- c(level, level_names, win_inherit, win, tie, loss, loss_inherit, win_ratio_individual,
                                  ci_lower_individual, ci_upper_individual, win_ratio_cumulative, ci_lower_cumulative, ci_upper_cumulative)
-        colnames(df) <- ifelse(is.na(target_names[colnames(df)]),colnames(df),target_names[colnames(df)])
 
         expected_names <- c("level", "level_names", "win_inherit", "win", "tie",
-                          "loss", "loss_inherit", "win_ratio_individual", "ci_lower_individual", "ci_upper_individual",
-                          "win_ratio_cumulative", "ci_lower_cumulative", "ci_upper_cumulative")
+                            "loss", "loss_inherit", "win_ratio_individual", "ci_lower_individual", "ci_upper_individual",
+                            "win_ratio_cumulative", "ci_lower_cumulative", "ci_upper_cumulative")
 
-        if(length(setdiff(expected_names, colnames(df)) >0)) {
-                stop(sprintf("Missing variables for: %s. Check input dataframe contains these variables.",
-                             paste(setdiff(expected_names, colnames(df)),collapse=", ")))
+        if(all(names(target_names) %in% names(df))==FALSE) {
+                stop("Missing variables. Check input dataframe contains required variables: level (optional), level_names, win_inherit, win,
+                     tie, loss, loss_inherit, win_ratio_individual, ci_lower_individual, ci_upper_individual, win_ratio_cumulative,
+                     ci_lower_cumulative, ci_upper_cumulative.")
         }
+
+        # Reorder columns so that they are in correct order for the renaming function (in case the dataframe has extra
+        # columns that are not necessary or they are in a different order)
+        df <- dplyr::select(df, c(level, level_names, win_inherit, win, tie, loss, loss_inherit, win_ratio_individual,
+                    ci_lower_individual, ci_upper_individual, win_ratio_cumulative, ci_lower_cumulative, ci_upper_cumulative))
+
+        # Rename the columns to the necessary names for the plot function below
+        colnames(df) <- ifelse(is.na(target_names[colnames(df)]),colnames(df),target_names[colnames(df)])
+
+        # TO DO -----------------------
+        # CHECK THE BEST WAY TO SET UP THESE CHECKS
+        # expected_names <- c("level", "level_names", "win_inherit", "win", "tie",
+        #                   "loss", "loss_inherit", "win_ratio_individual", "ci_lower_individual", "ci_upper_individual",
+        #                   "win_ratio_cumulative", "ci_lower_cumulative", "ci_upper_cumulative")
+
+        # if(length(setdiff(expected_names, colnames(df)) >0)) {
+        #         stop(sprintf("Missing variables for: %s. Check input dataframe contains these variables.",
+        #                      paste(setdiff(expected_names, colnames(df)),collapse=", ")))
+        # }
 
 
         ### Parameters for plots -----------------------
@@ -104,11 +127,33 @@ winRatioPlot <- function(df,type=NA, tie_handling=NA,
                         cumulative_label <- "Cumulative odds ratio"
                         null_effect_line <- 1
                         }
-                }
+        }
 
 
         # Sort data in ascending level in case dataframe is out of level order
         df <- df[order(df$level),]
+
+
+        if(overall_line==FALSE) {
+                # Create a dataframe with overall data line info
+                overall_line_df <- data.frame(level=(max(df$level)+1), level_names="Overall",
+                                              win_inherit=0,
+                                              win=((unname(unlist(df[df$level==max(df$level),"win_inherit"])))+(unname(unlist(df[df$level==max(df$level),"win"])))),
+                                              tie=(unname(unlist(df[df$level==max(df$level),"tie"]))),
+                                              loss=((unname(unlist(df[df$level==max(df$level),"loss_inherit"])))+(unname(unlist(df[df$level==max(df$level),"loss"])))),
+                                              loss_inherit=0,
+                                              win_ratio_individual=(unname(unlist(df[df$level==max(df$level),"win_ratio_cumulative"]))),
+                                              ci_lower_individual=(unname(unlist(df[df$level==max(df$level),"ci_lower_cumulative"]))),
+                                              ci_upper_individual=(unname(unlist(df[df$level==max(df$level),"ci_upper_cumulative"]))),
+                                              win_ratio_cumulative=(unname(unlist(df[df$level==max(df$level),"win_ratio_cumulative"]))),
+                                              ci_lower_cumulative=(unname(unlist(df[df$level==max(df$level),"ci_lower_cumulative"]))),
+                                              ci_upper_cumulative=(unname(unlist(df[df$level==max(df$level),"ci_upper_cumulative"]))))
+
+                # Bind overall line dataframe to df for plotting
+                df <- rbind(df, overall_line_df)
+        }
+
+
 
         # Create a list of level names to use later in plot (reverse order given the plot is reversed)
         level_label_names_list <- rev(as.list(df$level_names))
