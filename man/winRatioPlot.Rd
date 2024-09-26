@@ -2,56 +2,259 @@
 % Please edit documentation in R/winRatioPlot_function.R
 \name{winRatioPlot}
 \alias{winRatioPlot}
-\title{Win ratio plot function}
+\title{Visualise prioritised outcome effect estimates}
 \usage{
-winRatioPlot(df,tie_handling=NA,
-level="level", level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
-loss="loss", loss_inherit="loss_inherit",
-win_ratio_individual="win_ratio_individual", ci_lower_individual="ci_lower_individual", ci_upper_individual="ci_upper_individual",
-win_ratio_cumulative="win_ratio_cumulative", ci_lower_cumulative="ci_lower_cumulative", ci_upper_cumulative="ci_upper_cumulative")
+winRatioPlot(df, effect_name, neutral_point=NULL, tie_handling=NULL,
+overall_line=TRUE, level="level", level_names="level_names",
+win_inherit="win_inherit", win="win", tie="tie", loss="loss",
+loss_inherit="loss_inherit", win_ratio_individual="win_ratio_individual",
+ci_lower_individual="ci_lower_individual", ci_upper_individual="ci_upper_individual",
+win_ratio_cumulative="win_ratio_cumulative", ci_lower_cumulative="ci_lower_cumulative",
+ci_upper_cumulative="ci_upper_cumulative")
 }
 \arguments{
-\item{df}{A data frame containing win ratio analysis results to be plotted. Must contain variables for all the arguments (excluding tie_handling).}
+\item{df}{A data frame containing the analysis results to be plotted.}
 
-\item{tie_handling}{A string specifying how ties should be treated. Should be equal to "drop" or "split"}
+\item{effect_name}{A string specifying type of analysis to appear in the forest plot name.}
 
-\item{level}{A string indicating the column containing the ranking of the outcomes. The data within the variable should be integers and the order should be from "1" for the first level outcome, "2" for the second level outcome etc.}
+\item{neutral_point}{An integer specifying the point of no effect for intervention vs control.}
 
-\item{level_names}{A string indicating the column containing the names of the outcomes. The data within the variable should be character for outcome names such as "Death" for the outcome death.}
+\item{tie_handling}{A string specifying how ties should be treated.
+Should be set to \code{"drop"} or \code{"split"}.}
 
-\item{win_inherit}{A string indicating the column containing the inherited wins for each outcome. The data within the variable should be integers and contain inherited wins data for outcomes when ranked.}
+\item{overall_line}{If \code{TRUE} then the \code{df} already contains data for an overall line,
+if \code{FALSE} the \code{df} does not contain this data and an overall line for the plot
+will be calculated. Default is \code{TRUE}.}
 
-\item{win}{A string indicating the column containing the wins for each outcome. The data within the variable should be integers and contain wins data for outcomes when ranked.}
+\item{level}{A string indicating the column of \code{df} containing the ranking of
+the outcomes.}
 
-\item{tie}{A string indicating the column containing the ties for each outcome. The data within the variable should be integers and contain ties data for outcomes when ranked.}
+\item{level_names}{A string indicating the column of \code{df} containing the names
+of the outcomes.}
 
-\item{loss}{A string indicating the column containing the losses for each outcome. The data within the variable should be integers and contain losses data for outcomes when ranked.}
+\item{win_inherit}{A string indicating the column of \code{df} containing the
+inherited wins for each outcome.}
 
-\item{loss_inherit}{A string indicating the column containing the inherited losses for each outcome. The data within the variable should be integers and contain inherited losses data for outcomes when ranked.}
+\item{win}{A string indicating the column of \code{df} containing the wins for
+each outcome.}
 
-\item{win_ratio_individual}{A string indicating the column containing the win ratio for each outcome when considered independently (not ranked). The data within the variable should be numeric and contain win ratio data for outcomes when considered independently.}
+\item{tie}{A string indicating the column of \code{df} containing the ties for
+each outcome.}
 
-\item{ci_lower_individual}{A string indicating the column containing the lower boundary of the 95\% confidence interval for the win ratio for each outcome when considered independently (not ranked). The data within the variable should be numeric and contain the lower boundary of the 95\% confidence interval of the win ratio data for outcomes when considered independently.}
+\item{loss}{A string indicating the column of \code{df} containing the losses for
+each outcome.}
 
-\item{ci_upper_individual}{A string indicating the column containing the upper boundary of the 95\% confidence interval for the win ratio for each outcome when considered independently (not ranked). The data within the variable should be numeric and contain the upper boundary of the 95\% confidence interval of the win ratio data for outcomes when considered independently.}
+\item{loss_inherit}{A string indicating the column of \code{df} containing the
+inherited losses for each outcome.}
 
-\item{win_ratio_cumulative}{A string indicating the column containing the win ratio for each outcome when considered ranked. The data within the variable should be numeric and contain win ratio data for outcomes when considered ranked.}
+\item{win_ratio_individual}{A string indicating the column of \code{df} containing
+the win ratio for each outcome when considered independently (not ranked).}
 
-\item{ci_lower_cumulative}{A string indicating the column containing the lower boundary of the 95\% confidence interval for the win ratio for each outcome when considered ranked. The data within the variable should be numeric and contain the lower boundary of the 95\% confidence interval of the win ratio data for outcomes when considered ranked.}
+\item{ci_lower_individual}{A string indicating the column of \code{df} containing
+the lower boundary of the confidence interval for the win ratio for each outcome
+when considered independently (not ranked).}
 
-\item{ci_upper_cumulative}{A string indicating the column containing the upper boundary of the 95\% confidence interval for the win ratio for each outcome when considered ranked. The data within the variable should be numeric and contain the upper boundary of the 95\% confidence interval of the win ratio data for outcomes when considered ranked.}
+\item{ci_upper_individual}{A string indicating the column of \code{df} containing
+the upper boundary of the confidence interval for the win ratio for each outcome
+when considered independently (not ranked).}
+
+\item{win_ratio_cumulative}{A string indicating the column of \code{df} containing
+the win ratio for each outcome when considered ranked.}
+
+\item{ci_lower_cumulative}{A string indicating the column of \code{df} containing
+the lower boundary of the confidence interval for the win ratio for each outcome
+when considered ranked.}
+
+\item{ci_upper_cumulative}{A string indicating the column of \code{df} containing
+the upper boundary of the confidence interval for the win ratio for each outcome
+when considered ranked.}
 }
 \value{
-An object of type \code{patchwork} containing two plots. The left plot shows the proportions of inherited wins/wins/ties/losses/inherited losses for each outcome when ranked and overall. The right plot shows the measured effect (e.g., win ratio) at both a ranked outcome level (with overall) and for each outcome independently.
+A \code{patchwork} object containing two plots (left and right):
+\describe{
+     \item{The left plot shows the proportions of inherited wins/wins/ties/losses/inherited
+     losses for each outcome when ranked and overall. The right plot shows the measured effect (e.g., win ratio) at both a
+     ranked outcome level (with overall) and for each outcome independently.}
+}
 }
 \description{
-This is an extended explanation of what the winRatioPlot function does.
+Visualises the contribution of individual outcomes under generalized pairwise comparisons with prioritized
+outcomes methods, e.g. Win Ratio (CITE), Win Odds (CITE) and Net Benefit (Buyse 2010).
 }
 \details{
-The win ratio plot function is a way to visualise win ratio (or win odds) data, which incorporates
-ranking outcomes in order of importance and then assessing pairwise comparisons of wins/losses/ties
-for the intervention vs the control treatment. A "win" is recorded if the intervention participant
-did better on the outcome than the pairwise control participant, a "tie" is recorded if the intervention
-participant did the same on the outcome than the pairwise control participant, and a "loss" is recorded
-if the intervention participant did worse on the outcome than the pairwise control participant.
+The win ratio plot function is a way to visualise win ratio (or win odds) data,
+which incorporates ranking outcomes in order of importance and then assessing
+pairwise comparisons of participants for wins/losses/ties for the intervention vs
+control treatments. A "win" is recorded if the intervention participant did better
+on the outcome than the pairwise control participant, a "tie" is recorded if the
+intervention participant did the same on the outcome than the pairwise control
+participant, and a "loss" is recorded if the intervention participant did worse on
+the outcome than the pairwise control participant. The win ratio plot presents this
+data visually with two plots. The left plot shows the proportions of
+inherited wins/wins/ties/losses/inherited losses for each outcome as well as an overall
+line with the overall wins/ties/losses once all outcomes have been ranked. The right
+plot presents the individual outcome effect estimate independently as well as the
+cumulative effect estimate as a forest plot to clearly indicate how the effect
+estimate shifts as each additional ranked outcome is considered.
+
+The \code{df} must contain variables for all the arguments containing necessary data
+to produce the plots. This includes parameters: \code{level_names, win_inherit, win,
+tie, loss, loss_inherit, win_ratio_individual, ci_lower_individual,
+ci_upper_individual, win_ratio_cumulative, ci_lower_cumulative, ci_upper_cumulative}.
+The \code{level} parameter is optional to specify the ranking of outcomes, if included,
+the data within the variable should be integers and the order should be from "1" for
+the first level outcome, "2" for the second level outcome etc. (if included, the
+overall row can just be numbered as the number of ranked outcomes plus one). Variables
+for parameters \code{effect_name, neutral_point, tie_handling and overall_line} do not
+need to be included in the \code{df}.
+
+\code{effect_name} specifies the type of analysis the data is for. The string specified
+will be used as the axis label for the forest plot and in the legend. For example,
+\code{"Win ratio"} could be provided for a win ratio analysis or \code{"Adjusted win ratio"}
+for an adjusted win ratio analysis. This argument must be specified.
+
+\code{neutral_point} specifies the point of no effect for intervention vs control. This
+should be a number. For example, for a ratio this would be 1.
+
+\code{tie_handling} specifies how ties are handled in the original analysis so that a
+dashed line at the position ties were assigned to the wins and losses in the overall
+row can be added. This should be set to \code{"drop"} or \code{"split"}. If not
+specified no dashed line will appear indicating the position of splitting of ties
+for the overall level.
+
+\code{overall_line==TRUE} indicates that the \code{df} already contains data for an
+overall line. \code{overall_line==FALSE} indicates that the \code{df} does not
+contain this data and an overall line for the plot will be calculated from the data
+in the bottom ranked outcome row. The default for the parameter is \code{TRUE}.
+
+\code{level} specifies the column of the \code{df} containing the ranking of outcomes.
+The data within the variable should be integers and the order should be from "1" for
+the first level outcome, "2" for the second level outcome etc. (if included, the
+overall row can just be numbered as the number of ranked outcomes plus one). Note,
+\code{level} is optional, but if not included in the \code{df} the ranking of
+outcomes will be automatically inferred as the row order within the \code{df}. The
+default name for this column in the \code{df} is \code{"level"}.
+
+\code{level_names} specifies the column of the \code{df} containing the names of
+the outcomes. The data within the variable should be strings, these strings will
+appear as the names of the outcomes in the plot. For example, an outcome name within
+this column of the \code{df} might be \code{"Length of stay in hospital"}. Note, the
+default name for this column in the \code{df} is \code{"level_names"}.
+
+\code{win_inherit} specifies the column of the \code{df} containing the inherited wins
+for each outcome when ranked. The data within the variable should be integers.
+Inherited wins are defined as the total number of wins from any previous levels of
+outcomes, and the first level outcome should have a value of \code{0} as there cannot
+be any inherited wins for the first level outcome. The final \code{"overall"} row
+value should also be set to \code{0}, if it is not set to \code{0} then the overall
+row will incorrectly show proportions for inherited wins as well instead of just
+wins/ties/losses. Note, the default name for this column in the \code{df} is
+\code{"win_inherit"}.
+
+\code{win} specifies the column of the \code{df} containing the wins for the
+intervention treatment for each outcome when ranked. The data within the variable
+should be integers. Wins are defined as the number of pairwise comparisons of
+intervention vs control treatment where the participant receiving the intervention
+treatment had a better result on the outcome compared to the pairwise comparative
+participant receiving the control treatment for that outcome. For each level of
+outcome down the ranking, wins can only be calculated from pairwise comparisons of
+participants that tied on the outcome level above. The final \code{"overall"} row value should
+be set to the sum of \code{win_inherit} and \code{win} for the final level outcome,
+if it is not set to this the overall row will show incorrect overall proportions
+for wins/ties/losses. Note, the default name for this column in the \code{df} is
+\code{"win"}.
+
+\code{tie} specifies the column of the \code{df} containing the ties for the
+intervention and control treatments for each outcome when ranked. The data within
+the variable should be integers. Ties are defined as the number of pairwise
+comparisons of intervention vs control treatment where the participant receiving
+the intervention treatment had the same result on the outcome compared to the pairwise comparative
+participant receiving the control treatment for that outcome. For each level of
+outcome down the ranking, ties can only be calculated from pairwise comparisons of
+participants that tied on the level above. The final \code{"overall"} row value should
+be set to the the \code{tie} value for the final level outcome, if it is not set to
+this the overall row will show incorrect overall proportions for wins/ties/losses.
+Note, the default name for this column in the \code{df} is \code{"tie"}.
+
+\code{loss} specifies the column of the \code{df} containing the losses for the
+intervention treatment for each outcome when ranked. The data within the variable
+should be integers. Losses are defined as the number of pairwise comparisons of
+intervention vs control treatment where the participant receiving the intervention
+treatment had a worse result on the outcome compared to the pairwise comparative
+participant receiving the control treatment for that outcome. For each level of
+outcome down the ranking, losses can only be calculated from pairwise comparisons of
+participants that tied on the outcome level above. The final \code{"overall"} row value should
+be set to the sum of \code{loss_inherit} and \code{loss} for the final level outcome,
+if it is not set to this the overall row will show incorrect overall proportions
+for wins/ties/losses. Note, the default name for this column in the \code{df} is
+\code{"loss"}.
+
+\code{loss_inherit} specifies the column of the \code{df} containing the inherited losses
+for each outcome when ranked. The data within the variable should be integers.
+Inherited losses are defined as the total number of losses from any previous levels of
+outcomes, and the first level outcome should have a value of \code{0} as there cannot
+be any inherited losses for the first level outcome. The final \code{"overall"} row
+value should also be set to \code{0}, if it is not set to \code{0} then the overall
+row will incorrectly show proportions for inherited losses as well instead of just
+wins/ties/losses. Note, the default name for this column in the \code{df} is
+\code{"loss_inherit"}.
+
+\code{win_ratio_individual} specifies the column of the \code{df} containing the win
+ratio (or other alternative effect measure, such as odds ratio) for each outcome when
+considered independently (not ranked). This is defined as the win ratio for each
+outcome if it was the only outcome considered, i.e., the ratio of wins to losses for
+each pairwise comparison of intervention vs control treatment without considering any
+other higher ranked outcomes. The data within the variable should be numeric. The final
+\code{"overall"} row value can be set to the same value for the
+\code{win_ratio_individual} as the final level outcome as the \code{"overall"} row
+for this variable is not used in the production of the plot. Note, the default name
+for this column in the \code{df} is \code{"win_ratio_individual"}.
+
+\code{ci_lower_individual} specifies the column of the \code{df} containing the lower
+boundary of the confidence interval for the \code{win_ratio_individual} (the win
+ratio when considered independently, not ranked). The data within the variable should
+be numeric. The final \code{"overall"} row value can be set to the same value for the
+\code{ci_lower_individual} as the final level outcome as the \code{"overall"} row
+for this variable is not used in the production of the plot. Note, the default name
+for this column in the \code{df} is \code{"ci_lower_individual"}.
+
+\code{ci_upper_individual} specifies the column of the \code{df} containing the upper
+boundary of the confidence interval for the \code{win_ratio_individual} (the win
+ratio when considered independently, not ranked). The data within the variable should
+be numeric. The final \code{"overall"} row value can be set to the same value for the
+\code{ci_upper_individual} as the final level outcome as the \code{"overall"} row
+for this variable is not used in the production of the plot. Note, the default name
+for this column in the \code{df} is \code{"ci_upper_individual"}.
+
+\code{win_ratio_cumulative} specifies the column of the \code{df} containing the win
+ratio (or other alternative effect measure, such as odds ratio) for each outcome when
+considered ranked. This is defined as the ratio of the sum of \code{win_inherit} and
+\code{win} for that outcome divided by the sum of \code{loss_inherit} and \code{loss}
+for that outcome. The data within the variable should be numeric. The final
+\code{"overall"} row value can be set to the same value for the
+\code{win_ratio_cumulative} as the final level outcome as the \code{"overall"} row
+for this variable is the same value as the final level outcome of the
+\code{win_ratio_cumulative}. Note, the default name for this column in the \code{df}
+is \code{"win_ratio_cumulative"}.
+
+\code{ci_lower_cumulative} specifies the column of the \code{df} containing the lower
+boundary of the confidence interval for the \code{win_ratio_cumulative} (the win
+ratio when considered ranked). The data within the variable should be numeric. The
+final \code{"overall"} row value can be set to the same value for the
+\code{ci_lower_cumulative} as the final level outcome as the \code{"overall"} row
+for this variable is the same value as the final level outcome of the
+\code{ci_lower_cumulative}. Note, the default name for this column in the \code{df}
+is \code{"ci_lower_cumulative"}.
+
+\code{ci_upper_cumulative} specifies the column of the \code{df} containing the upper
+boundary of the confidence interval for the \code{win_ratio_cumulative} (the win
+ratio when considered ranked). The data within the variable should be numeric. The
+final \code{"overall"} row value can be set to the same value for the
+\code{ci_upper_cumulative} as the final level outcome as the \code{"overall"} row
+for this variable is the same value as the final level outcome of the
+\code{ci_upper_cumulative}. Note, the default name for this column in the \code{df}
+is \code{"ci_upper_cumulative"}.
+}
+\references{
+Buyse M. Generalized pairwise comparisons of prioritized outcomes in the two-sample problem. Stat Med. 2010 Dec 30;29(30):3245-57. doi: 10.1002/sim.3923. PMID: 21170918.
 }

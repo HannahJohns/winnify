@@ -10,9 +10,9 @@ rm(list=ls())
 data_test <- read.csv("test_data.csv")
 
 wr <- WinRatio::winratio(id = "id", trt = "trt", active = "Treatment",
-outcomes = list(outc1 = c("death", "s", "t2death"),
-                outc2 = list(paste0("recurr", 1:9), "r", paste0("t2recurr", 1:9)),
-                outc3 = c("size", "c", ">")),
+outcomes = list("Death" = c("death", "s", "t2death"),
+                "Length of hospital stay" = list(paste0("recurr", 1:9), "r", paste0("t2recurr", 1:9)),
+                "Wellbeing at 28 days" = c("size", "c", ">")),
 fu = "t2death", data = data_test)
 
 WinRatioPlot::plot.WinRatio(wr)
@@ -38,13 +38,13 @@ test_data_overall_fn <- data.frame(level=1:5,
 
 test_data_overall_fn2 <- subset(test_data_overall_fn, select = -c(level))
 
-WinRatioPlot::winRatioPlot(test_data_overall_fn, tie_handling="drop", type="wr", overall_line = TRUE,
+WinRatioPlot::winRatioPlot(test_data_overall_fn, effect_name = "Win ratio", overall_line = TRUE,
                            level="level", level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
                            loss="loss", loss_inherit="loss_inherit",
                            win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",
                            win_ratio_cumulative="win_ratio_cum", ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
 
-WinRatioPlot::winRatioPlot(test_data_overall_fn2, tie_handling="drop", type="or", overall_line = FALSE,
+WinRatioPlot::winRatioPlot(test_data_overall_fn2, effect_name = "Odds ratio", neutral_point = 2, tie_handling="drop", overall_line = FALSE,
                            level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
                            loss="loss", loss_inherit="loss_inherit",
                            win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",
@@ -53,7 +53,7 @@ WinRatioPlot::winRatioPlot(test_data_overall_fn2, tie_handling="drop", type="or"
 test2 <- test_data_overall_fn2[,c(2,3,4,5,6,7,8,9,10,11,12,1)]
 test12 <- test_data_overall_fn[,c(2,3,4,5,6,7,8,9,10,11,12,13,1)]
 
-WinRatioPlot::winRatioPlot(test12, tie_handling="drop", type="or", overall_line = FALSE,
+WinRatioPlot::winRatioPlot(test12, effect_name = "Odds ratio", neutral_point = 1, tie_handling="drop", overall_line = TRUE,
                            level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
                            loss="loss", loss_inherit="loss_inherit",
                            win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",

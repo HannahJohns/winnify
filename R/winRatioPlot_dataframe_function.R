@@ -58,7 +58,7 @@ plot.WinRatio <- function(wr)
         df <- rbind(wr_dataframe, overall_line)
 
         # Plot figure
-        WinRatioPlot::winRatioPlot(df, tie_handling="drop", type="wr", overall_line = TRUE)
+        WinRatioPlot::winRatioPlot(df, effect_name = "Win ratio", neutral_point = 1, tie_handling="drop", overall_line = TRUE)
 
 }
 
