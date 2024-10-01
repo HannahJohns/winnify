@@ -21,43 +21,39 @@ ggp <- WinRatioPlot::plot.WinRatio(wr)
 
 class(ggp)
 
-# Create test dataframe for plot with overall line
-test_data_overall_fn <- data.frame(level=1:5,
-                                   level_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing", "Overall"),
-                                   win_inherit=c(0,15,25,33,0),
-                                   win=c(15,10,8,15,48),
-                                   tie=c(80,60,40,15,15),
-                                   loss=c(5,10,12,10,37),
-                                   loss_inherit=c(0,5,15,27,0),
-                                   win_ratio=c(3,1,0.67,1.5,1.30),
-                                   ci_lower=c(2.6,0.6,0.27,1.1,1.10),
-                                   ci_upper=c(3.4,1.4,1.07,1.9,1.50),
-                                   win_ratio_cum=c(3,1.67,1.22,1.30,1.30),
-                                   ci_lower_cum=c(2.6,1.32,0.92,1.10,1.10),
-                                   ci_upper_cum=c(3.4,2.02,1.52,1.50,1.50))
 
-test_data_overall_fn2 <- subset(test_data_overall_fn, select = -c(level))
+# Create test dataframe for plot
+test_data_overall_fn <- data.frame(outcome_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
+                                   win_inherit=c(0,15,25,33),
+                                   win=c(15,10,8,15),
+                                   tie=c(80,60,40,15),
+                                   loss=c(5,10,12,10),
+                                   loss_inherit=c(0,5,15,27),
+                                   win_ratio=c(3,1,0.67,1.5),
+                                   ci_lower=c(2.6,0.6,0.27,1.1),
+                                   ci_upper=c(3.4,1.4,1.07,1.9),
+                                   win_ratio_cum=c(3,1.67,1.22,1.30),
+                                   ci_lower_cum=c(2.6,1.32,0.92,1.10),
+                                   ci_upper_cum=c(3.4,2.02,1.52,1.50))
 
-WinRatioPlot::winRatioPlot(test_data_overall_fn, effect_name = "Win ratio", overall_line = TRUE,
-                           level="level", level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
+
+
+WinRatioPlot::winRatioPlot(test_data_overall_fn, effect_name = "Win ratio", neutral_point = 1,
+                           outcome_names="outcome_names", win_inherit="win_inherit", win="win", tie="tie",
                            loss="loss", loss_inherit="loss_inherit",
                            win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",
                            win_ratio_cumulative="win_ratio_cum", ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
 
-WinRatioPlot::winRatioPlot(test_data_overall_fn2, effect_name = "Odds ratio", neutral_point = 2, tie_handling="drop", overall_line = FALSE,
-                           level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
+test_data_overall_fn2 <- subset(test_data_overall_fn, select = -c(outcome_names))
+
+WinRatioPlot::winRatioPlot(test_data_overall_fn2, effect_name = "Odds ratio", neutral_point = 2, tie_handling="drop",
+                           outcome_names="outcome_names", win_inherit="win_inherit", win="win", tie="tie",
                            loss="loss", loss_inherit="loss_inherit",
                            win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",
                            win_ratio_cumulative="win_ratio_cum", ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
 
-test2 <- test_data_overall_fn2[,c(2,3,4,5,6,7,8,9,10,11,12,1)]
-test12 <- test_data_overall_fn[,c(2,3,4,5,6,7,8,9,10,11,12,13,1)]
 
-WinRatioPlot::winRatioPlot(test12, effect_name = "Odds ratio", neutral_point = 1, tie_handling="drop", overall_line = TRUE,
-                           level_names="level_names", win_inherit="win_inherit", win="win", tie="tie",
-                           loss="loss", loss_inherit="loss_inherit",
-                           win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",
-                           win_ratio_cumulative="win_ratio_cum", ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
+
 
 ##############################################
 # summary(wr)
@@ -109,159 +105,3 @@ ggplot()+
         annotate(geom="segment",x=0,xend=1,y=5,yend=5)+
         annotate(geom="point",x=0.5,y=5,size=5)
 
-
-# ggp
-# str(ggp)
-#
-#
-
-# remove.packages("patchwork")
-install.packages("patchwork")
-gg1 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=cyl))+ggplot2::geom_point()
-gg2 <- ggplot2::ggplot(mtcars,ggplot2::aes(x=mpg,y=wt))+ggplot2::geom_point()
-#
-# ?patchwork:::`-.ggplot`
-#
-
-
-patchwork:::as_patch.ggplot(gg1)
-patchwork:::as_patch.ggplot(gg2)
-
-# Load survival package to use the dataset 'bladder1'
-# library(survival)
-# Creation of dataset 'df' with 3 outcomes:
-#   Outcome 1: death (survival event)
-#   Outcome 2: cancer recurrence (repeated survival event)
-#   Outcome 3: size of largest initial tumour (continuous event)
-# data1 <- bladder1  %>%
-#         mutate(trt = if_else(treatment == "placebo", "Placebo", "Treatment")) %>%
-#         group_by(id) %>%
-#         mutate(death = if_else(max(status) %in% c(2, 3), 1, 0),
-#                t2death = max(stop)) %>%
-#         ungroup() %>%
-#         select(id, trt, death, t2death, number, size) %>%
-#         unique()
-#
-# data2 <- bladder1 %>%
-#         filter(status == 1) %>%
-#         select(id, t2recurr = stop) %>%
-#         mutate(recurr = 1) %>%
-#         arrange(id, t2recurr) %>%
-#         group_by(id) %>%
-#         mutate(nrecurr = row_number()) %>%
-#         ungroup() %>%
-#         full_join((data1 %>% select(id)), by = "id") %>%
-#         complete(id, nrecurr) %>%
-#         filter(!is.na(nrecurr)) %>%
-#         full_join((data1 %>% select(id, t2death)), by = "id") %>%
-#         mutate(
-#                 recurr = replace(recurr, is.na(recurr), 0),
-#                 t2recurr = if_else(is.na(t2recurr), t2death, t2recurr)
-#         ) %>%
-#         select(id, nrecurr, recurr, t2recurr)
-#
-# data3 <- data2 %>%
-#         pivot_wider(id_cols = "id", names_from =  nrecurr,
-#                     values_from = recurr, names_prefix  = "recurr")
-#
-# data4 <- data2 %>%
-#         pivot_wider(id_cols = "id", names_from =  nrecurr,
-#                     values_from = t2recurr, names_prefix  = "t2recurr")
-#
-# data5 <- full_join(data3, data4, by = "id")
-#
-# df <- full_join(data1, data5, by = "id")
-
-# write.csv(df, "test_data.csv", row.names = FALSE, quote = FALSE)
-#
-# df <- read.csv("test_data.csv")
-#
-# # Calculate the win ratio
-# wr <- winratio(id = "id", trt = "trt", active = "Treatment",
-#                outcomes = list(outc1 = c("death", "s", "t2death"),
-#                                outc2 = list(paste0("recurr", 1:9), "r", paste0("t2recurr", 1:9)),
-#                                outc3 = c("size", "c", ">")),
-#                fu = "t2death", data = df)
-#
-#
-# #Loop iter value
-# i <-2
-# summary(wr)
-#
-# # TEST DATAFRAME CODE
-# wr_output_full = data.frame()
-# for (i in 1:length(wr$call$outcomes)) {
-#         wr2 <- winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
-#                         outcomes = wr$call$outcomes[1:i],
-#                         fu = wr$call$fu, data = wr$call$data)
-#        wr_output_df <- data.frame(level=i, level_names=wr2$call$outcome$outc1[i], win_inherit=(wr2$total.wins-wr2$wins[i]), win=wr2$wins[i],
-#                           tie=wr2$total.ties, loss=wr2$loss[i], loss_inherit=(wr2$total.loss-wr2$loss[i]),
-#                           win_ratio=(wr2$wins[i]/wr2$loss[i]), ci_lower=2, ci_upper=4,
-#                           win_ratio_cum=wr2$wr, ci_lower_cum=wr2$wr.lower, ci_upper_cum=wr2$wr.upper)
-#         wr_output_full <- rbind(wr_output_full, wr_output_df)
-# }
-#
-# wr_output_full
-#
-# wrtest <- winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
-#                 outcomes = wr$call$outcomes[3],
-#                 fu = wr$call$fu, data = wr$call$data)
-#
-#
-# # wr_dataframe <- do.call("rbind",wr_output_list)
-#
-#
-# wr_output_list2 <- lapply(1:length(wr$call$outcomes), function(i) {
-#         wr2 <- winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
-#                         outcomes = wr$call$outcomes[1:i],
-#                         fu = wr$call$fu, data = wr$call$data)
-#         data.frame(level=i, level_names=wr2$call$outcome$outc1[i], win_inherit=(wr2$total.wins-wr2$wins[i]), win=wr2$wins[i],
-#                    tie=wr2$total.ties, loss=wr2$loss[i], loss_inherit=(wr2$total.loss-wr2$loss[i]),
-#                    win_ratio=(wr2$wins[i]/wr2$loss[i]), ci_lower=2, ci_upper=4,
-#                    win_ratio_cum=wr2$wr, ci_lower_cum=wr2$wr.lower, ci_upper_cum=wr2$wr.upper)
-#         }
-#         )
-# wr_dataframe <- do.call("rbind",wr_output_list2)
-#
-#
-# wr2 <- winratio(id = wr$call$id, trt = wr$call$trt, active = wr$call$active,
-#                 outcomes = wr$call$outcomes[1:i],
-#                 fu = wr$call$fu, data = wr$call$data)
-# summary(wr2)
-#
-# wr$total.wins
-#
-#
-# list_of_results <- lapply(1:5, function(i){
-#         data.frame(i=i,x=i+1,y=i^2)
-# })
-#
-#
-# do.call("rbind",list_of_results)
-# # rbind(list_of_results[[1]],list_of_results[[2]],........)
-#
-# list_of_results <- lapply(1:5, function(i){
-#         i
-# })
-# do.call("c",list_of_results)
-#
-# wr$call$data
-# wr$call$outcomes
-#
-#
-# wr$call$outcomes[1:2]
-#
-# out1
-# out2
-# out3
-#
-# out1+out2
-# out1+out2+out3
-#
-# wr$wins
-#
-# 1:length(wr$call$outcomes)
-#
-# lapply(1:5, function(i){
-#         list(i=i, cum_i = 1:i)
-# })
