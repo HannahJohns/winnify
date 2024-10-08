@@ -1,25 +1,55 @@
-#' Win ratio plot function
+#' Visualise Win Ratio effect estimates from the winratio function
 #'
-#' This is an extended explanation of what this function does
+#' Extracts necessary data to visualise the Win Ratio from output of
+#' the winratio function in the WinRatio package (CITE).
 #'
 #' @usage
-#' fun(arg1, arg2 = default, ...)
+#' plot.WinRatio(wr)
 #'
-#' @param df A data frame containing analysis results to be plotted
-#' @param tie_handling A string specifying ....
-#'
-#'
-#'@details
-#'Additional details...
+#' @param wr An object of class \code{WinRatio} containing the output from the winratio
+#' function in the WinRatio package.
 #'
 #'
-#'@return
-#' An object of type \code{patchwork} containing plot showing blah de blah
+#' @details
+#' The win ratio plot dataframe function is a way to visualise win ratio estimates
+#' calculated directly from the winratio function from the WinRatio package. This
+#' is done with two plots:
+#' \describe{
+#' \item{}{The left plot visualises the contribution of each outcome level
+#' of the prioritised outcome hierarchy to the overall proportion of wins, losses
+#' and ties. At each successive outcome level, ties remaining from the previous level are
+#' resolved and then passed onto the next outcome.}
+#' \item{}{The right plot presents a forest plot of the individual outcome effect
+#' estimate as well as the cumulative effect estimate to show how the effect
+#' estimate shifts as successive outcomes are considered.}
+#' }
 #'
 #'
+#' @return
+#' A \code{patchwork} object containing two plots (left and right):
+#' \describe{
+#' \item{}{The left plot shows the proportions of inherited
+#' wins/wins/ties/losses/inherited losses for each outcome when ranked and overall.}
+#' \item{}{The right plot shows the measured effect (e.g., win ratio) at both a
+#' cumulatively ranked outcome level (with overall) and for each outcome independently.}
+#' }
+#'
+#' @examples
+#' # Use the test_data dataset provided by the package and visualise the prioritised outcome effect estimate.
+#' # test_data dataset taken from ... (CITE!!!)
+#' data_test <- read.csv("test_data.csv")
+#' wr <- WinRatio::winratio(id = "id", trt = "trt", active = "Treatment",
+#'                         outcomes = list("Death" = c("death", "s", "t2death"),
+#'                         "Length of hospital stay" = list(paste0("recurr", 1:9), "r", paste0("t2recurr", 1:9)),
+#'                         "Wellbeing at 28 days" = c("size", "c", ">")),
+#'                         fu = "t2death", data = data_test)
+#' WinRatioPlot::plot.WinRatio(wr)
 #'
 #'
-#' @export
+#' @references
+#' ...ADD CITATION FOR R PACKAGE!!
+#'
+#'
 plot.WinRatio <- function(wr)
 {
         # Extract data and create dataframe

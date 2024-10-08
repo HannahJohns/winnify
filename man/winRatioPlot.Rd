@@ -5,8 +5,7 @@
 \title{Visualise prioritised outcome effect estimates}
 \usage{
 winRatioPlot(df, effect_name, neutral_point=NULL,
-tie_handling=NULL, overall_line=TRUE,
-level="level", level_names="level_names",
+tie_handling=NULL, outcome_names="outcome_names",
 win_inherit="win_inherit", win="win", tie="tie",
 loss="loss", loss_inherit="loss_inherit",
 win_ratio_individual="win_ratio_individual",
@@ -25,13 +24,7 @@ ci_upper_cumulative="ci_upper_cumulative")
 
 \item{tie_handling}{A string specifying how ties should be treated.}
 
-\item{overall_line}{A logical value indicating if \code{df} contains a row describing the
-overall fit.}
-
-\item{level}{A string indicating the column of \code{df} containing the rank order of
-the outcomes.}
-
-\item{level_names}{A string indicating the column of \code{df} containing the names
+\item{outcome_names}{A string indicating the column of \code{df} containing the names
 of the outcomes.}
 
 \item{win_inherit}{A string indicating the column of \code{df} containing the
@@ -61,15 +54,15 @@ the upper boundary of the confidence interval for the win ratio for each outcome
 when considered independently (not ranked).}
 
 \item{win_ratio_cumulative}{A string indicating the column of \code{df} containing
-the win ratio for each outcome when considered ranked.}
+the cumulative win ratio for each outcome when considered ranked.}
 
 \item{ci_lower_cumulative}{A string indicating the column of \code{df} containing
-the lower boundary of the confidence interval for the win ratio for each outcome
-when considered ranked.}
+the lower boundary of the confidence interval for the cumulative win ratio for
+each outcome when considered ranked.}
 
 \item{ci_upper_cumulative}{A string indicating the column of \code{df} containing
-the upper boundary of the confidence interval for the win ratio for each outcome
-when considered ranked.}
+the upper boundary of the confidence interval for the cumulative win ratio for
+each outcome when considered ranked.}
 }
 \value{
 A \code{patchwork} object containing two plots (left and right):
@@ -89,24 +82,20 @@ Win Odds (Dong 2020) and Net Benefit (Buyse 2010).
 The win ratio plot function is a way to visualise win ratio/win odds/etc. estimates
 based on prioritised outcomes. This is done with two plots:
 \describe{
-\item{}{The left plot visualises the contribution of each level
+\item{}{The left plot visualises the contribution of each outcome level
 of the prioritised outcome hierarchy to the overall proportion of wins, losses
-and ties. At each successive level, ties remaining from the previous level are
+and ties. At each successive outcome level, ties remaining from the previous level are
 resolved and then passed onto the next outcome.}
 \item{}{The right plot presents a forest plot of the individual outcome effect
 estimate as well as the cumulative effect estimate to show how the effect
 estimate shifts as successive outcomes are considered.}
 }
 
-The dataframe \code{df} must contain variables for all mandatory arguments
-to produce the plots. The \code{level} parameter is optional. \code{level} specifies the
-rank order of outcomes, with the order from "1" for the first level outcome,
-"2" for the second level outcome etc. (if included, the overall row should be numbered
-as the number of ranked outcomes plus one). If \code{level} is not specified the rank order
-of outcomes will be inferred as the order of rows in the \code{df}.
+The dataframe \code{df} must contain columns for all parameters listed except
+\code{effect_name, neutral_point and tie_handling}.
 
-Variables for parameters \code{effect_name, neutral_point, tie_handling and overall_line}
-do not need to be included in the dataframe \code{df}.
+Note, the outcome hierarchy is inferred from the order of the rows in the \code{df},
+whereby the first row is the highest level outcome, etc.
 
 \code{tie_handling} specifies how ties are handled in the analysis so that a
 dashed line at the position ties were assigned to the wins and losses in the overall
@@ -114,15 +103,31 @@ row can be added. This should be set to \code{"drop"} or \code{"split"}. If not
 specified no dashed line will appear indicating the position of splitting of ties
 for the overall level.
 
-\code{overall_line==TRUE} indicates that the \code{df} already contains data for an
-overall line. \code{overall_line==FALSE} indicates that the \code{df} does not
-contain this data and an overall line for the plot will be calculated from the data
-in the bottom ranked outcome row.
-
-Note, at each level, \code{win} and \code{loss} correspond to the \em{new} wins and
+Note, at each outcome level, \code{win} and \code{loss} correspond to the new wins and
 losses that were not already calculated from outcomes with greater priority.
 \code{win_inherit} and \code{loss_inherit} correspond to the cumulative sums of
-wins and losses from higher ranked outcomes.
+wins and losses that are inherited from higher ranked outcomes.
+}
+\examples{
+# Create a dataframe containing analysis results to be plotted and visualise the prioritised outcome effect estimate
+test_data_overall_fn <- data.frame(outcome_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
+                                win_inherit=c(0,15,25,33),
+                                win=c(15,10,8,15),
+                                tie=c(80,60,40,15),
+                                loss=c(5,10,12,10),
+                                loss_inherit=c(0,5,15,27),
+                                win_ratio=c(3,1,0.67,1.5),
+                                ci_lower=c(2.6,0.6,0.27,1.1),
+                                ci_upper=c(3.4,1.4,1.07,1.9),
+                                win_ratio_cum=c(3,1.67,1.22,1.30),
+                                ci_lower_cum=c(2.6,1.32,0.92,1.10),
+                                ci_upper_cum=c(3.4,2.02,1.52,1.50))
+WinRatioPlot::winRatioPlot(test_data_overall_fn, effect_name = "Win ratio", neutral_point = 1,
+                        outcome_names="outcome_names", win_inherit="win_inherit", win="win", tie="tie",
+                        loss="loss", loss_inherit="loss_inherit",
+                        win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",
+                        win_ratio_cumulative="win_ratio_cum", ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
+
 }
 \references{
 Pocock SJ, Ariti CA, Collier TJ, Wang D. The win ratio: a new approach to the analysis of composite endpoints in clinical trials based on clinical priorities. European Heart Journal. 2012;33(2):176-182. doi:10.1093/eurheartj/ehr352
