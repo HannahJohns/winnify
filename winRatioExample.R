@@ -7,6 +7,21 @@
 
 rm(list=ls())
 
+# data_test_remapcap <- read.csv("generated_data.csv")
+
+data_test_remapcap <- data_remapcap
+data_test_remapcap$homeTime <- (21-data_test_remapcap$dischargeTime)
+data_test_remapcap$group <- ifelse(data_test_remapcap$group == "uc", "Control", "Treatment")
+
+wr_remapcap <- WinRatio::winratio(id = "X", trt = "group", active = "Treatment",
+                         outcomes = list("Death" = c("deathStatus", "s", "deathTime"),
+                                         "Time to discharge" = c("dischargeStatus", "s", "dischargeTime"),
+                                         "Organ support-free days" = c("score", "c", ">")),
+                         fu = "deathTime", data = data_test_remapcap)
+
+WinRatioPlot::plot.WinRatio(wr_remapcap)
+
+######################################################################################
 data_test <- read.csv("test_data.csv")
 
 wr <- WinRatio::winratio(id = "id", trt = "trt", active = "Treatment",

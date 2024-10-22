@@ -7,8 +7,7 @@
 plot.WinRatio(wr)
 }
 \arguments{
-\item{wr}{An object of class \code{WinRatio} containing the output from the winratio
-function in the WinRatio package.}
+\item{wr}{An object of class \code{WinRatio} containing the output from \code{winratio()}}
 }
 \value{
 A \code{patchwork} object containing two plots (left and right):
@@ -20,36 +19,37 @@ cumulatively ranked outcome level (with overall) and for each outcome independen
 }
 }
 \description{
-Extracts necessary data to visualise the Win Ratio from output of
-the winratio function in the WinRatio package (CITE).
-}
-\details{
-The win ratio plot dataframe function is a way to visualise win ratio estimates
-calculated directly from the winratio function from the WinRatio package. This
-is done with two plots:
-\describe{
-\item{}{The left plot visualises the contribution of each outcome level
-of the prioritised outcome hierarchy to the overall proportion of wins, losses
-and ties. At each successive outcome level, ties remaining from the previous level are
-resolved and then passed onto the next outcome.}
-\item{}{The right plot presents a forest plot of the individual outcome effect
-estimate as well as the cumulative effect estimate to show how the effect
-estimate shifts as successive outcomes are considered.}
-}
+Convenience function for visualising Win Ratio as estimated by \code{\link[WinRatio]{winratio}}
+from the \code{WinRatio} package.
 }
 \examples{
-# Use the test_data dataset provided by the package and visualise the prioritised outcome effect estimate.
-# test_data dataset taken from ... (CITE!!!)
-data_test <- read.csv("test_data.csv")
-wr <- WinRatio::winratio(id = "id", trt = "trt", active = "Treatment",
-                        outcomes = list("Death" = c("death", "s", "t2death"),
-                        "Length of hospital stay" = list(paste0("recurr", 1:9), "r", paste0("t2recurr", 1:9)),
-                        "Wellbeing at 28 days" = c("size", "c", ">")),
-                        fu = "t2death", data = data_test)
-WinRatioPlot::plot.WinRatio(wr)
+# Load WinRatio package to use winratio function
+library(WinRatio)
+
+# Use data_remapcap dataset provided by package and modify so it is suitable to use with
+# the winratio function
+
+# Add an id variable to dataset
+data_remapcap$id <- seq_len(nrow(data_remapcap))
+
+# Calculate time at home as time post discharge
+data_remapcap$homeTime <- (data_remapcap$deathTime-data_remapcap$dischargeTime)
+
+# Collapse treatment groups so only one treatment group
+data_remapcap$group <- ifelse(data_remapcap$group == "uc", "Control", "Treatment")
+
+# Run winratio function on dataset
+wr <- winratio(id = "id", trt = "group", active = "Treatment",
+                outcomes = list("Death" = c("deathStatus", "s", "deathTime"),
+                "Time at home" = c("homeTime", "c", "<")),
+                fu = "deathTime", data = data_remapcap)
+
+# Plot win ratio results
+plot.WinRatio(wr)
+
 
 
 }
-\references{
-...ADD CITATION FOR R PACKAGE!!
+\seealso{
+[winRatioPlot]
 }
