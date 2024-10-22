@@ -4,7 +4,7 @@
 #' from the \code{WinRatio} package.
 #'
 #' @usage
-#' plot.WinRatio(wr)
+#' plot.winratio(wr)
 #'
 #' @param wr An object of class \code{WinRatio} containing the output from \code{winratio()}
 #'
@@ -43,11 +43,11 @@
 #'                 fu = "deathTime", data = data_remapcap)
 #'
 #' # Plot win ratio results
-#' plot.WinRatio(wr)
+#' plot.winratio(wr)
 #'
 #'
 #'
-plot.WinRatio <- function(wr)
+plot.winratio <- function(wr)
 {
         # Extract data and create dataframe
         wr_output_list <- lapply(1:length(wr$call$outcomes), function(i) {

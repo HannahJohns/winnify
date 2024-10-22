@@ -3,25 +3,23 @@
 \docType{data}
 \name{data_remapcap}
 \alias{data_remapcap}
-\title{CHANGE THIS TO CITATION FROM REMAPCAP...}
+\title{A reconstructed dataset from the REMAP-CAP clinical trial by Angus et al. (2020)}
 \format{
-A data frame with 118 rows and 24 variables:
+A data frame with 379 rows and 6 variables:
 \describe{
-  \item{id}{Patient id}
-  \item{trt}{Type of treatment received}
-  \item{death}{Death}
+  \item{group}{Type of treatment received}
+  \item{deathTime}{Time to death in days}
+  \item{dischargeTime}{Time to discharge in days}
+  \item{deathStatus}{If patient died within 21 days of follow-up (1=Yes; 0=No)}
+  \item{dischargeStatus}{If patient was discharged within 21 days of follow-up (1=Yes; 0=No)}
+  \item{score}{Number of organ support-free days (if patient died, assigned value of -1)}
 }
 }
 \usage{
 data_remapcap
 }
 \description{
-Data on recurrences of bladder cancer, to demonstrate methodology for recurrent event modelling
-}
-\details{
-A dataset reconstructing reported outcomes after stroke
-as reported in Lees et. al. (2010) which pooled the results
-of several studies.
+A reconstructed dataset from the REMAP-CAP clinical trial by Angus et al. (2020)
 }
 \references{
 Angus, Derek C., et al. "Effect of hydrocortisone on mortality and organ support in patients with severe COVID-19: the REMAP-CAP COVID-19 corticosteroid domain randomized clinical trial." Jama 324.13 (2020): 1317-1329.

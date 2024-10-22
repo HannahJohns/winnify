@@ -93,8 +93,9 @@
 #'
 #'
 #' @examples
-#' # Create a dataframe containing analysis results to be plotted and visualise the prioritised outcome effect estimate
-#' test_data_overall_fn <- data.frame(outcome_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
+#' # Create a dataframe containing analysis results to be plotted
+#' test_data_overall_fn <- data.frame(outcome_names=c("Death", "Length of hospital stay",
+#'                                 "Time off work", "Wellbeing"),
 #'                                 win_inherit=c(0,15,25,33),
 #'                                 win=c(15,10,8,15),
 #'                                 tie=c(80,60,40,15),
@@ -106,11 +107,14 @@
 #'                                 win_ratio_cum=c(3,1.67,1.22,1.30),
 #'                                 ci_lower_cum=c(2.6,1.32,0.92,1.10),
 #'                                 ci_upper_cum=c(3.4,2.02,1.52,1.50))
-#' WinRatioPlot::winRatioPlot(test_data_overall_fn, effect_name = "Win ratio", neutral_point = 1,
-#'                         outcome_names="outcome_names", win_inherit="win_inherit", win="win", tie="tie",
-#'                         loss="loss", loss_inherit="loss_inherit",
-#'                         win_ratio_individual="win_ratio", ci_lower_individual="ci_lower", ci_upper_individual="ci_upper",
-#'                         win_ratio_cumulative="win_ratio_cum", ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
+#'
+#' # Visualise the prioritised outcome effect estimate
+#' winRatioPlot(test_data_overall_fn, effect_name = "Win ratio", neutral_point = 1,
+#'                         outcome_names="outcome_names", win_inherit="win_inherit",
+#'                         win="win", tie="tie", loss="loss", loss_inherit="loss_inherit",
+#'                         win_ratio_individual="win_ratio", ci_lower_individual="ci_lower",
+#'                         ci_upper_individual="ci_upper", win_ratio_cumulative="win_ratio_cum",
+#'                         ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
 #'
 #' @references
 #' Pocock SJ, Ariti CA, Collier TJ, Wang D. The win ratio: a new approach to the analysis of composite endpoints in clinical trials based on clinical priorities. European Heart Journal. 2012;33(2):176-182. doi:10.1093/eurheartj/ehr352
