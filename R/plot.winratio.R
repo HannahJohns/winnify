@@ -17,30 +17,30 @@
 #' cumulatively ranked outcome level (with overall) and for each outcome independently.}
 #' }
 #'
-#' @seealso [winRatioPlot]
+#' @seealso \link{po_plot}
 #'
 #'
 #' @examples
 #' # Load WinRatio package to use winratio function
 #' library(WinRatio)
 #'
-#' # Use data_remapcap dataset provided by package and modify so it is suitable to use with
+#' # Use remapcap dataset provided by package and modify so it is suitable to use with
 #' # the winratio function
 #'
 #' # Add an id variable to dataset
-#' data_remapcap$id <- seq_len(nrow(data_remapcap))
+#' remapcap$id <- seq_len(nrow(remapcap))
 #'
 #' # Calculate time at home as time post discharge
-#' data_remapcap$homeTime <- (data_remapcap$deathTime-data_remapcap$dischargeTime)
+#' remapcap$homeTime <- (remapcap$deathTime-remapcap$dischargeTime)
 #'
 #' # Collapse treatment groups so only one treatment group
-#' data_remapcap$group <- ifelse(data_remapcap$group == "uc", "Control", "Treatment")
+#' remapcap$group <- ifelse(remapcap$group == "uc", "Control", "Treatment")
 #'
 #' # Run winratio function on dataset
 #' wr <- winratio(id = "id", trt = "group", active = "Treatment",
 #'                 outcomes = list("Death" = c("deathStatus", "s", "deathTime"),
 #'                 "Time at home" = c("homeTime", "c", "<")),
-#'                 fu = "deathTime", data = data_remapcap)
+#'                 fu = "deathTime", data = remapcap)
 #'
 #' # Plot win ratio results
 #' plot.winratio(wr)

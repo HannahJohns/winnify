@@ -13,4 +13,4 @@
 #' @references
 #' Angus, Derek C., et al. "Effect of hydrocortisone on mortality and organ support in patients with severe COVID-19: the REMAP-CAP COVID-19 corticosteroid domain randomized clinical trial." Jama 324.13 (2020): 1317-1329.
 #'
-"data_remapcap"
+"remapcap"

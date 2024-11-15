@@ -6,14 +6,14 @@
 #'
 #'
 #' @usage
-#' winRatioPlot(df, effect_name, neutral_point=NULL,
+#' po_plot(df, effect_name, neutral_point=NULL,
 #' tie_handling=NULL, outcome_names="outcome_names",
 #' win_inherit="win_inherit", win="win", tie="tie",
 #' loss="loss", loss_inherit="loss_inherit",
-#' win_ratio_individual="win_ratio_individual",
+#' effect_individual="effect_individual",
 #' ci_lower_individual="ci_lower_individual",
 #' ci_upper_individual="ci_upper_individual",
-#' win_ratio_cumulative="win_ratio_cumulative",
+#' effect_cumulative="effect_cumulative",
 #' ci_lower_cumulative="ci_lower_cumulative",
 #' ci_upper_cumulative="ci_upper_cumulative")
 #'
@@ -33,21 +33,21 @@
 #' each outcome.
 #' @param loss_inherit A string indicating the column of \code{df} containing the
 #' inherited losses for each outcome.
-#' @param win_ratio_individual A string indicating the column of \code{df} containing
-#' the win ratio for each outcome when considered independently (not ranked).
+#' @param effect_individual A string indicating the column of \code{df} containing
+#' the effect size for each outcome when considered independently (not ranked).
 #' @param ci_lower_individual A string indicating the column of \code{df} containing
-#' the lower boundary of the confidence interval for the win ratio for each outcome
+#' the lower boundary of the confidence interval for the effect size for each outcome
 #' when considered independently (not ranked).
 #' @param ci_upper_individual A string indicating the column of \code{df} containing
-#' the upper boundary of the confidence interval for the win ratio for each outcome
+#' the upper boundary of the confidence interval for the effect size for each outcome
 #' when considered independently (not ranked).
-#' @param win_ratio_cumulative A string indicating the column of \code{df} containing
-#' the cumulative win ratio for each outcome when considered ranked.
+#' @param effect_cumulative A string indicating the column of \code{df} containing
+#' the cumulative effect size for each outcome when considered ranked.
 #' @param ci_lower_cumulative A string indicating the column of \code{df} containing
-#' the lower boundary of the confidence interval for the cumulative win ratio for
+#' the lower boundary of the confidence interval for the cumulative effect size for
 #' each outcome when considered ranked.
 #' @param ci_upper_cumulative A string indicating the column of \code{df} containing
-#' the upper boundary of the confidence interval for the cumulative win ratio for
+#' the upper boundary of the confidence interval for the cumulative effect size for
 #' each outcome when considered ranked.
 #'
 #'
@@ -109,11 +109,11 @@
 #'                                 ci_upper_cum=c(3.4,2.02,1.52,1.50))
 #'
 #' # Visualise the prioritised outcome effect estimate
-#' winRatioPlot(test_data_overall_fn, effect_name = "Win ratio", neutral_point = 1,
+#' po_plot(test_data_overall_fn, effect_name = "Win Ratio", neutral_point = 1,
 #'                         outcome_names="outcome_names", win_inherit="win_inherit",
 #'                         win="win", tie="tie", loss="loss", loss_inherit="loss_inherit",
-#'                         win_ratio_individual="win_ratio", ci_lower_individual="ci_lower",
-#'                         ci_upper_individual="ci_upper", win_ratio_cumulative="win_ratio_cum",
+#'                         effect_individual="win_ratio", ci_lower_individual="ci_lower",
+#'                         ci_upper_individual="ci_upper", effect_cumulative="win_ratio_cum",
 #'                         ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
 #'
 #' @references
@@ -124,21 +124,22 @@
 #' Buyse M. Generalized pairwise comparisons of prioritized outcomes in the two-sample problem. Statistics in Medicine. 2010;29(30):3245-3257. doi:10.1002/sim.3923
 #'
 #'
-winRatioPlot <- function(df, effect_name, neutral_point=NULL, tie_handling=NULL,
+po_plot <- function(df, effect_name= "Effect Size",
+                        neutral_point=NULL, tie_handling=NULL,
                          outcome_names="outcome_names", win_inherit="win_inherit", win="win", tie="tie",
                          loss="loss", loss_inherit="loss_inherit",
-                         win_ratio_individual="win_ratio_individual", ci_lower_individual="ci_lower_individual", ci_upper_individual="ci_upper_individual",
-                         win_ratio_cumulative="win_ratio_cumulative", ci_lower_cumulative="ci_lower_cumulative", ci_upper_cumulative="ci_upper_cumulative")
+                         effect_individual="effect_individual", ci_lower_individual="ci_lower_individual", ci_upper_individual="ci_upper_individual",
+                         effect_cumulative="effect_cumulative", ci_lower_cumulative="ci_lower_cumulative", ci_upper_cumulative="ci_upper_cumulative")
 {
         # Include some checks to ensure that the argument inserted is a dataframe and that the necessary variables
         # are included in the dataframe and stop and report an error message if they are missing
         target_names <- c(outcome_names="outcome_names", win_inherit="win_inherit", win="win", tie="tie",
                           loss="loss", loss_inherit="loss_inherit",
-                          win_ratio="win_ratio_individual", ci_lower="ci_lower_individual", ci_upper="ci_upper_individual",
-                          win_ratio_cum="win_ratio_cumulative", ci_lower_cum="ci_lower_cumulative", ci_upper_cum="ci_upper_cumulative")
+                          win_ratio="effect_individual", ci_lower="ci_lower_individual", ci_upper="ci_upper_individual",
+                          win_ratio_cum="effect_cumulative", ci_lower_cum="ci_lower_cumulative", ci_upper_cum="ci_upper_cumulative")
 
-        names(target_names) <- c(outcome_names, win_inherit, win, tie, loss, loss_inherit, win_ratio_individual,
-                                 ci_lower_individual, ci_upper_individual, win_ratio_cumulative, ci_lower_cumulative, ci_upper_cumulative)
+        names(target_names) <- c(outcome_names, win_inherit, win, tie, loss, loss_inherit, effect_individual,
+                                 ci_lower_individual, ci_upper_individual, effect_cumulative, ci_lower_cumulative, ci_upper_cumulative)
 
         if(!all(names(target_names) %in% names(df))) {
 
@@ -149,11 +150,12 @@ winRatioPlot <- function(df, effect_name, neutral_point=NULL, tie_handling=NULL,
 
 
         # Select only necessary columns (in case extra columns in df) and reorder columns so that they are in correct order for the renaming function
-        df <- df[,c(outcome_names, win_inherit, win, tie, loss, loss_inherit, win_ratio_individual,
-                    ci_lower_individual, ci_upper_individual, win_ratio_cumulative, ci_lower_cumulative, ci_upper_cumulative)]
+        df <- df[,c(outcome_names, win_inherit, win, tie, loss, loss_inherit, effect_individual,
+                    ci_lower_individual, ci_upper_individual, effect_cumulative, ci_lower_cumulative, ci_upper_cumulative)]
 
         # Rename the columns to the necessary names for the plot function below
-        colnames(df) <- ifelse(is.na(target_names[colnames(df)]),colnames(df),target_names[colnames(df)])
+        df1 <- df
+        colnames(df) <- ifelse(is.na(names(target_names[colnames(df)])),colnames(df),names(target_names[colnames(df)]))
 
         # Create level ranking order variable
         df <- cbind(level = 1:nrow(df), df)
@@ -165,12 +167,12 @@ winRatioPlot <- function(df, effect_name, neutral_point=NULL, tie_handling=NULL,
                                       tie=(unname(unlist(df[df$level==max(df$level),"tie"]))),
                                       loss=((unname(unlist(df[df$level==max(df$level),"loss_inherit"])))+(unname(unlist(df[df$level==max(df$level),"loss"])))),
                                       loss_inherit=0,
-                                      win_ratio_individual=(unname(unlist(df[df$level==max(df$level),"win_ratio_cumulative"]))),
-                                      ci_lower_individual=(unname(unlist(df[df$level==max(df$level),"ci_lower_cumulative"]))),
-                                      ci_upper_individual=(unname(unlist(df[df$level==max(df$level),"ci_upper_cumulative"]))),
-                                      win_ratio_cumulative=(unname(unlist(df[df$level==max(df$level),"win_ratio_cumulative"]))),
-                                      ci_lower_cumulative=(unname(unlist(df[df$level==max(df$level),"ci_lower_cumulative"]))),
-                                      ci_upper_cumulative=(unname(unlist(df[df$level==max(df$level),"ci_upper_cumulative"]))))
+                                      win_ratio=(unname(unlist(df[df$level==max(df$level),"win_ratio_cum"]))),
+                                      ci_lower=(unname(unlist(df[df$level==max(df$level),"ci_lower_cum"]))),
+                                      ci_upper=(unname(unlist(df[df$level==max(df$level),"ci_upper_cum"]))),
+                                      win_ratio_cum=(unname(unlist(df[df$level==max(df$level),"win_ratio_cum"]))),
+                                      ci_lower_cum=(unname(unlist(df[df$level==max(df$level),"ci_lower_cum"]))),
+                                      ci_upper_cum=(unname(unlist(df[df$level==max(df$level),"ci_upper_cum"]))))
 
         # Bind overall line dataframe to df for plotting
         df <- rbind(df, overall_line_df)
@@ -377,9 +379,9 @@ winRatioPlot <- function(df, effect_name, neutral_point=NULL, tie_handling=NULL,
         df_forest <- do.call("rbind",lapply(c("_individual","_cumulative"),function(i){
 
                 if(i=="_cumulative"){
-                        varNames <- c("win_ratio_cumulative", "ci_lower_cumulative", "ci_upper_cumulative")
+                        varNames <- c("win_ratio_cum", "ci_lower_cum", "ci_upper_cum")
                 } else {
-                        varNames <- c("win_ratio_individual", "ci_lower_individual", "ci_upper_individual")
+                        varNames <- c("win_ratio", "ci_lower", "ci_upper")
                 }
 
                 out <- df_forest_wide[,c("level","outcome_names",varNames)]
@@ -521,8 +523,6 @@ winRatioPlot <- function(df, effect_name, neutral_point=NULL, tie_handling=NULL,
                         ggplot2::theme_bw() +
                         ggplot2::theme(axis.title.x = ggplot2::element_text(face="bold"))
         }
-
-
 
         ### Patching plots together -----------------------
         patchwork::wrap_plots(wr_box_overall2, wr_forest_overall_diamond_cum2) + patchwork::plot_layout(guides = 'collect')

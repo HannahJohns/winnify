@@ -113,6 +113,6 @@ min(score)
 
 gdf <- draws[[which(score==min(score))]]
 
-data_remapcap <- gdf
+remapcap <- gdf
 
-usethis::use_data(data_remapcap, overwrite = TRUE)
+usethis::use_data(remapcap, overwrite = TRUE)
