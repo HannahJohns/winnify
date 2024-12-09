@@ -1,6 +1,6 @@
-Package: WinPlot
+Package: winnify
 Type: Package
-Title: Visual Summary of the Win Ratio and Related Measures
+Title: Visual Summaries and Wrappers for Estimating the Win Ratio and Related Measures
 Version: 0.1.0
 Authors@R: c(
         person("Hannah","Johns",
@@ -25,3 +25,10 @@ LazyData: true
 RoxygenNote: 7.3.2
 Depends: 
     R (>= 2.10)
+Imports:
+    ggplot2,
+    patchwork
+Suggests:
+    genodds,
+    pim,
+    WinRatio
