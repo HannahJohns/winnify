@@ -14,3 +14,14 @@
 #' Angus, Derek C., et al. "Effect of hydrocortisone on mortality and organ support in patients with severe COVID-19: the REMAP-CAP COVID-19 corticosteroid domain randomized clinical trial." Jama 324.13 (2020): 1317-1329.
 #'
 "remapcap"
+
+#' Synthetic data showing modified Rankin Scale and neurological improvement
+#'
+#' @format A data frame with 2000 rows and 3 variables:
+#' \describe{
+#'   \item{treat}{Type of treatment received}
+#'   \item{mRS}{modified Rankin Score at 90 days (0= no disability, 6 = death)}
+#'   \item{early_neuro_improvement}{Change in neurological function at 24 hours}
+#' }
+#'
+"neuro_improvement"

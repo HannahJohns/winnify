@@ -1,4 +1,64 @@
 
+#winnify() test
+
+rm(list = ls())
+statistic <- function(formula,data){
+        fit <- genodds::genodds(response = data[,as.character(formula)[2]],
+                                group = data[,as.character(formula)[3]])
+        out <- c(fit$pooled_lnodds,fit$pooled_lnconf.int, fit$pooled_p)
+        names(out) <- c("estimate","lower","upper","pval")
+        out[1:3] <- exp(out[1:3])
+        out
+}
+
+
+formula <- mRS+early_neuro_improvement~treat
+
+statistic = statistic
+data = neuro_improvement
+
+x <- winnify(mRS+early_neuro_improvement~treat,
+             statistic = statistic,
+             data = neuro_improvement)
+
+plot(x,neutral_point = 1,log_scale = F)
+
+
+
+#as_winnify.data.frame test
+
+
+# Create test dataframe for plot
+
+
+
+
+
+
+
+
+
+remapcap$id <- seq_len(nrow(remapcap))
+
+# Calculate time at home as time post discharge
+remapcap$homeTime <- (remapcap$deathTime-remapcap$dischargeTime)
+
+# Collapse treatment groups so only one treatment group
+remapcap$group <- ifelse(remapcap$group == "uc", "Control", "Treatment")
+
+library(WinRatio)
+# Run winratio function on dataset
+wr1 <- winratio(id = "id", trt = "group", active = "Treatment",
+                outcomes = list("Death" = c("deathStatus", "s", "deathTime"),
+                "Time at home" = c("homeTime", "c", "<")),
+                fu = "deathTime", data = remapcap)
+
+
+# Plot win ratio results
+tmp <- as_winnify.winratio(wr1)
+
+plot(tmp)
+
 # library(WinRatio)
 # library(WinRatioPlot)
 # ?WinRatio::winratio
@@ -36,20 +96,6 @@ ggp <- WinRatioPlot::plot.WinRatio(wr)
 
 class(ggp)
 
-
-# Create test dataframe for plot
-test_data_overall_fn <- data.frame(outcome_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
-                                   win_inherit=c(0,15,25,33),
-                                   win=c(15,10,8,15),
-                                   tie=c(80,60,40,15),
-                                   loss=c(5,10,12,10),
-                                   loss_inherit=c(0,5,15,27),
-                                   win_ratio=c(3,1,0.67,1.5),
-                                   ci_lower=c(2.6,0.6,0.27,1.1),
-                                   ci_upper=c(3.4,1.4,1.07,1.9),
-                                   win_ratio_cum=c(3,1.67,1.22,1.30),
-                                   ci_lower_cum=c(2.6,1.32,0.92,1.10),
-                                   ci_upper_cum=c(3.4,2.02,1.52,1.50))
 
 
 
