@@ -89,8 +89,6 @@ winnify <- function(formula, statistic, data){
 
         out <- lapply(1:length(lhs), function(i){
 
-                print(i)
-
                 # Run on individual values
                 tmp_data <- data
                 tmp_data[,lhs_name] <- tmp_data[,lhs[i]]
@@ -153,9 +151,14 @@ winnify <- function(formula, statistic, data){
 
         overall_row <- out[nrow(out),,drop=FALSE]
 
-        overall_row[,c("estimate_individual","lower_individual","upper_individual","pval_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","pval_cumulative")]
         overall_row$outcome_names <- "Overall"
+        overall_row[,c("estimate_individual","lower_individual","upper_individual","pval_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","pval_cumulative")]
+        overall_row$win <- overall_row$win+overall_row$win_inherit
+        overall_row$loss <- overall_row$loss+overall_row$loss_inherit
+        overall_row$loss_inherit <- overall_row$win_inherit <- 0
+
         out <- rbind(out,overall_row)
+
 
         attr(out,"levels") <- levels(data[,main_comparator])
         class(out) <- c("Winnify",class(out))

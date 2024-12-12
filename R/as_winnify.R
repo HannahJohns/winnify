@@ -66,6 +66,7 @@
 #' @examples
 #'
 #'
+
 #' data <- data.frame(outcome_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
 #'                    win_inherit=c(0,15,25,33),
 #'                    win=c(15,10,8,15),
@@ -182,8 +183,12 @@ as_winnify.data.frame <- function(data,
 
         overall_row <- out[nrow(out),,drop=FALSE]
 
-        overall_row[,c("estimate_individual","lower_individual","upper_individual","pval_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","pval_cumulative")]
         overall_row$outcome_names <- "Overall"
+        overall_row[,c("estimate_individual","lower_individual","upper_individual","pval_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","pval_cumulative")]
+        overall_row$win <- overall_row$win+overall_row$win_inherit
+        overall_row$loss <- overall_row$loss+overall_row$loss_inherit
+        overall_row$loss_inherit <- overall_row$win_inherit <- 0
+
         out <- rbind(out,overall_row)
 
         attr(out,"tie_handling") <- tie_handling
@@ -271,8 +276,12 @@ as_winnify.WinRatio <- function(x){
 
         overall_row <- out[nrow(out),,drop=FALSE]
 
-        overall_row[,c("estimate_individual","lower_individual","upper_individual","pval_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","pval_cumulative")]
         overall_row$outcome_names <- "Overall"
+        overall_row[,c("estimate_individual","lower_individual","upper_individual","pval_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","pval_cumulative")]
+        overall_row$win <- overall_row$win+overall_row$win_inherit
+        overall_row$loss <- overall_row$loss+overall_row$loss_inherit
+        overall_row$loss_inherit <- overall_row$win_inherit <- 0
+
         out <- rbind(out,overall_row)
 
         attr(out,"tie_handling") <- "drop"
