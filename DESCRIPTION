@@ -17,7 +17,7 @@ Authors@R: c(
                 comment=c(ORCID="0000-0002-9807-6606")
         )
         ) 
-Maintainer: Hannah Johns <htjohns@gmail.com>
+Maintainer: Hannah Johns <dr.hannah.johns@gmail.com>
 Description: Visualises the contribution of individual outcomes under generalized pairwise comparisons e.g. Win Ratio, Win Odds and Net Benefit.
 License: GPL (>=2.0)
 Encoding: UTF-8
