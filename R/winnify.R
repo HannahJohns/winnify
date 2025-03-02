@@ -295,7 +295,9 @@ winnify <- function(formula, statistic, data){
 #'
 #'
 plot.Winnify <- function(x, log_scale=F,
-                         effect_name=NULL,neutral_point=NULL, tie_handling=NULL
+                         effect_name=NULL,neutral_point=NULL, tie_handling=NULL,
+                         control_name = "control",
+                         intervention_name = "intervention"
                     ){
 
         # Load default arguments from attr(x) where possible
@@ -408,7 +410,7 @@ plot.Winnify <- function(x, log_scale=F,
                         )
                 ) +
                 ggplot2::coord_flip() +
-                ggplot2::ylab("Proportion (intervention vs control)") +
+                ggplot2::ylab(sprintf("Proportion (%s vs %s)", intervention_name, control_name)) +
                 ggplot2::theme_bw() +
                 ggplot2::theme(
                         panel.grid.major.y = ggplot2::element_blank(),
@@ -563,7 +565,10 @@ plot.Winnify <- function(x, log_scale=F,
 
                 background_colourpanel$favours_int <- factor(background_colourpanel$favours_int,
                                                              levels = c(0,1),
-                                                             labels = c("Favours control", "Favours intervention"))
+                                                             labels = c(sprintf("Favours %s", control_name),
+                                                                        sprintf("Favours %s", intervention_name)
+                                                             )
+                )
 
                 wr_forest_overall_diamond_cum2 <- wr_forest_overall_diamond_cum2 +
                         ggplot2::geom_rect(data=background_colourpanel,

@@ -1,7 +1,7 @@
 Package: winnify
 Type: Package
 Title: Visual Summaries and Wrappers for Estimating the Win Ratio and Related Measures
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(
         person("Hannah","Johns",
                 role=c("aut","cre"),
