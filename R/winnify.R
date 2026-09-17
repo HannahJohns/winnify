@@ -1,4 +1,3 @@
-
 as_winnify <- function (x, ...) UseMethod("as_winnify", x)
 
 #' Enables Prioritised Outcomes analysis using rank-based statistical methods
@@ -44,18 +43,47 @@ as_winnify <- function (x, ...) UseMethod("as_winnify", x)
 #'
 #'
 #'
-winnify <- function(formula, statistic, data){
+winnify <- function(formula, statistic, data, weights = NULL,...){
+
 
         warning("There are almost no checks in here. This needs fixed.")
+
+        # Input sanitation
+        data <- as.data.frame(data)
+        if(!is.function(statistic)) stop("statistic should be a function with formula, data and weights arguments")
+        if(!rlang::is_formula(formula)) stop("formula should be a formula")
+
+        if(!("formula" %in% formalArgs(statistic))) stop("statistic function needs a formula argument")
+        if(!("data" %in% formalArgs(statistic))) stop("statistic function needs a data argument")
+        if(!("weights" %in% formalArgs(statistic) | "..." %in% formalArgs(statistic))) stop("statistic function needs either a weights argument or to accept other arguments using ...")
+
+        if(is.null(weights)){
+                weights <- rep(1,nrow(data))
+        } else {
+                if(weights)
+                if(!("weights" %in% formalArgs(statistic))) warning("statistic doesn't have a weights argument, but weights were supplied. They have likely been ignored.")
+        }
 
         lhs <- formula[-3]
         rhs <- formula[-2]
 
-        get_wlt <- function(y, x){
+        if(length(attr(terms(rhs),"term.labels"))>1) warning(sprintf(
+                "%s is the main comparator and all other terms will be ignored when calculating wins, losses and ties. Suggest using IPTW weights instead of covariate adjustment",
+                attr(terms(rhs),"term.labels")[1]
+        ))
 
-                xtab <- table(y,x)
+        get_wlt <- function(y, x, w){
 
-                pairTab <- outer(xtab[,1],xtab[,2])
+                # xtab <- table(y,x)
+
+                xtab <- aggregate(x = list("w" = w),
+                                  by = list("y" = y, "x"=x),
+                                  FUN = sum)
+
+                pairTab <- outer(
+                        xtab[xtab[,"x"]==unique(x)[1],"w"],
+                        xtab[xtab[,"x"]==unique(x)[2],"w"]
+                        )
 
                 wins <- sum(pairTab[upper.tri(pairTab,diag = F)])
                 losses <- sum(pairTab[lower.tri(pairTab,diag = F)])
@@ -93,7 +121,7 @@ winnify <- function(formula, statistic, data){
                 tmp_data <- data
                 tmp_data[,lhs_name] <- tmp_data[,lhs[i]]
 
-                individual_result <- statistic(formula,tmp_data)
+                individual_result <- statistic(formula=formula,data = tmp_data,weights=weight,...)
 
                 # Construct ranks based on cumulative results and run on that
 
@@ -112,9 +140,9 @@ winnify <- function(formula, statistic, data){
 
                 tmp_data <- merge(data,ranks)
 
-                cumulative_wlt <- get_wlt(tmp_data[,lhs_name],tmp_data[,main_comparator])
+                cumulative_wlt <- get_wlt(y=tmp_data[,lhs_name],x=tmp_data[,main_comparator],w=weights)
                 cumulative_wlt <- c(win_inherit =0, cumulative_wlt,loss_inherit =0) # Just initialise, we will set this up later
-                cumulative_result <- statistic(formula,tmp_data)
+                cumulative_result <- statistic(formula,tmp_data,...)
 
                 # Construct row for object based on these results
                 names(individual_result) <- paste(names(individual_result),"individual",sep="_")
@@ -174,6 +202,8 @@ winnify <- function(formula, statistic, data){
 #' comparisons with prioritized outcomes methods, e.g. Win Ratio (Pocock 2012),
 #' Win Odds (Dong 2020) and Net Benefit (Buyse 2010).
 #'
+#'
+#' @exportS3Method
 #'
 #' @usage
 #' po_plot(df, effect_name, neutral_point=NULL,

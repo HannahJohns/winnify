@@ -4,7 +4,7 @@
 \alias{as_winnify.WinRatio}
 \title{Visualise Win Ratio effect estimates from the winratio function}
 \usage{
-as_winnify.winratio(x)
+as_winnify(x)
 }
 \arguments{
 \item{x}{An object of class \code{WinRatio} containing the output from \code{winratio()}}

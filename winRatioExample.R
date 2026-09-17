@@ -1,8 +1,8 @@
-
 #winnify() test
 
 rm(list = ls())
-statistic <- function(formula,data){
+
+statistic <- function(formula,data,...){
         fit <- genodds::genodds(response = data[,as.character(formula)[2]],
                                 group = data[,as.character(formula)[3]])
         out <- c(fit$pooled_lnodds,fit$pooled_lnconf.int, fit$pooled_p)
@@ -11,12 +11,6 @@ statistic <- function(formula,data){
         out
 }
 
-
-formula <- mRS+early_neuro_improvement~treat
-
-statistic = statistic
-data = neuro_improvement
-
 x <- winnify(mRS+early_neuro_improvement~treat,
              statistic = statistic,
              data = neuro_improvement)
@@ -24,23 +18,9 @@ x <- winnify(mRS+early_neuro_improvement~treat,
 plot(x,neutral_point = 1,log_scale = F)
 
 
-
-#as_winnify.data.frame test
-
-
-# Create test dataframe for plot
-
-
-
-
-
-
-
-
-
-remapcap$id <- seq_len(nrow(remapcap))
-
 # Calculate time at home as time post discharge
+remapcap$id <- 1:nrow(remapcap)
+
 remapcap$homeTime <- (remapcap$deathTime-remapcap$dischargeTime)
 
 # Collapse treatment groups so only one treatment group
@@ -50,12 +30,37 @@ library(WinRatio)
 # Run winratio function on dataset
 wr1 <- winratio(id = "id", trt = "group", active = "Treatment",
                 outcomes = list("Death" = c("deathStatus", "s", "deathTime"),
+                                "Time at home" = c("homeTime", "c", "<")),
+                fu = "deathTime", data = remapcap)
+
+summary(wr1)
+plot(as_winnify(wr1))
+
+
+
+
+
+
+# as_winnify.data.frame test
+
+# Create test dataframe for plot
+
+# Calculate time at home as time post discharge
+remapcap$homeTime <- (remapcap$deathTime-remapcap$dischargeTime)
+
+# Collapse treatment groups so only one treatment group
+remapcap$group <- ifelse(remapcap$group == "uc", "Control", "Treatment")
+remapcap$id <- 1:nrow(remapcap)
+
+library(WinRatio)
+# Run winratio function on dataset
+wr1 <- winratio(id = "id", trt = "group", active = "Treatment",
+                outcomes = list("Death" = c("deathStatus", "s", "deathTime"),
                 "Time at home" = c("homeTime", "c", "<")),
                 fu = "deathTime", data = remapcap)
 
-
 # Plot win ratio results
-tmp <- as_winnify.winratio(wr1)
+tmp <- as_winnify.WinRatio(wr1)
 
 plot(tmp)
 

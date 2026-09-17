@@ -1,5 +1,7 @@
 #' Convert a data frame to a Winnify object
 #'
+#' @exportS3Method
+#'
 #' @usage
 #' as_winnify.data.frame(data,
 #' outcome_names = "outcome_names",
@@ -207,8 +209,11 @@ as_winnify.data.frame <- function(data,
 #' Convenience function for visualising Win Ratio as estimated by \code{\link[WinRatio]{winratio}}
 #' from the \code{WinRatio} package.
 #'
+#'
+#' @exportS3Method
+#'
 #' @usage
-#' as_winnify.winratio(x)
+#' as_winnify(x)
 #'
 #' @param x An object of class \code{WinRatio} containing the output from \code{winratio()}
 #'
