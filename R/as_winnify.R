@@ -68,7 +68,6 @@
 #' @examples
 #'
 #'
-
 #' data <- data.frame(outcome_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
 #'                    win_inherit=c(0,15,25,33),
 #'                    win=c(15,10,8,15),

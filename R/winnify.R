@@ -1,5 +1,4 @@
 as_winnify <- function (x, ...) UseMethod("as_winnify", x)
-
 #' Enables Prioritised Outcomes analysis using rank-based statistical methods
 #'
 #' @description Wrapper function facilitating use of other R analysis functions
@@ -19,7 +18,7 @@ as_winnify <- function (x, ...) UseMethod("as_winnify", x)
 #' statistic should be a function that takes a formula and a dataset and should return a named vector of length 4 containing
 #' estimate, lower, upper and pval
 #'
-#' NOTE: wins/losses/ties are not adjusted for covariates even if statistic specifies this
+#' NOTE: wins/losses/ties in the summary are not adjusted for covariates, even if statistic is adjusted.
 #'
 #' @examples
 #'
@@ -33,48 +32,41 @@ as_winnify <- function (x, ...) UseMethod("as_winnify", x)
 #'         out[1:3] <- exp(out[1:3])
 #'         out
 #' }
-#'
 #' result <- winnify(mRS+early_neuro_improvement~treat,
 #'                   statistic = statistic,
 #'                   data = neuro_improvement)
 #'
-#' plot(result,neutral_point = 1,log_scale = F)
+#' plot(result,neutral_point = 1,log_scale = FALSE)
 #'
 #'
 #'
 #'
-winnify <- function(formula, statistic, data, weights = NULL,...){
-
-
-        warning("There are almost no checks in here. This needs fixed.")
+winnify <- function(formula, statistic, data, ...){
 
         # Input sanitation
         data <- as.data.frame(data)
-        if(!is.function(statistic)) stop("statistic should be a function with formula, data and weights arguments")
+        if(!is.function(statistic)) stop("statistic should be a function with formula and data arguments")
         if(!rlang::is_formula(formula)) stop("formula should be a formula")
 
         if(!("formula" %in% formalArgs(statistic))) stop("statistic function needs a formula argument")
         if(!("data" %in% formalArgs(statistic))) stop("statistic function needs a data argument")
-        if(!("weights" %in% formalArgs(statistic) | "..." %in% formalArgs(statistic))) stop("statistic function needs either a weights argument or to accept other arguments using ...")
-
-        if(is.null(weights)){
-                weights <- rep(1,nrow(data))
-        } else {
-                if(weights)
-                if(!("weights" %in% formalArgs(statistic))) warning("statistic doesn't have a weights argument, but weights were supplied. They have likely been ignored.")
-        }
 
         lhs <- formula[-3]
         rhs <- formula[-2]
 
         if(length(attr(terms(rhs),"term.labels"))>1) warning(sprintf(
-                "%s is the main comparator and all other terms will be ignored when calculating wins, losses and ties. Suggest using IPTW weights instead of covariate adjustment",
+                "%s is the main comparator and all other terms will be ignored when calculating wins, losses and ties.",
                 attr(terms(rhs),"term.labels")[1]
         ))
 
-        get_wlt <- function(y, x, w){
+        get_wlt <- function(y, x){
 
                 # xtab <- table(y,x)
+
+                # In future versions, adding w as an argument here will allow
+                # this to be weighted
+
+                w <- rep(1,length(x))
 
                 xtab <- aggregate(x = list("w" = w),
                                   by = list("y" = y, "x"=x),
@@ -121,7 +113,7 @@ winnify <- function(formula, statistic, data, weights = NULL,...){
                 tmp_data <- data
                 tmp_data[,lhs_name] <- tmp_data[,lhs[i]]
 
-                individual_result <- statistic(formula=formula,data = tmp_data,weights=weight,...)
+                individual_result <- statistic(formula=formula,data = tmp_data,...)
 
                 # Construct ranks based on cumulative results and run on that
 
@@ -140,7 +132,7 @@ winnify <- function(formula, statistic, data, weights = NULL,...){
 
                 tmp_data <- merge(data,ranks)
 
-                cumulative_wlt <- get_wlt(y=tmp_data[,lhs_name],x=tmp_data[,main_comparator],w=weights)
+                cumulative_wlt <- get_wlt(y=tmp_data[,lhs_name],x=tmp_data[,main_comparator])
                 cumulative_wlt <- c(win_inherit =0, cumulative_wlt,loss_inherit =0) # Just initialise, we will set this up later
                 cumulative_result <- statistic(formula,tmp_data,...)
 
@@ -195,7 +187,6 @@ winnify <- function(formula, statistic, data, weights = NULL,...){
 
 }
 
-
 #' Visualise prioritised outcome effect estimates
 #'
 #' Visualises the contribution of individual outcomes under generalized pairwise
@@ -205,123 +196,8 @@ winnify <- function(formula, statistic, data, weights = NULL,...){
 #'
 #' @exportS3Method
 #'
-#' @usage
-#' po_plot(df, effect_name, neutral_point=NULL,
-#' tie_handling=NULL, outcome_names="outcome_names",
-#' win_inherit="win_inherit", win="win", tie="tie",
-#' loss="loss", loss_inherit="loss_inherit",
-#' effect_individual="effect_individual",
-#' ci_lower_individual="ci_lower_individual",
-#' ci_upper_individual="ci_upper_individual",
-#' effect_cumulative="effect_cumulative",
-#' ci_lower_cumulative="ci_lower_cumulative",
-#' ci_upper_cumulative="ci_upper_cumulative")
+#' @usage plot(x)
 #'
-#' @param df A data frame containing the analysis results to be plotted.
-#' @param effect_name A string specifying type of analysis to appear in the forest plot label.
-#' @param neutral_point An number specifying the point of no effect for intervention vs control.
-#' @param tie_handling A string specifying how ties should be treated.
-#' @param outcome_names A string indicating the column of \code{df} containing the names
-#' of the outcomes.
-#' @param win_inherit A string indicating the column of \code{df} containing the
-#' inherited wins for each outcome.
-#' @param win A string indicating the column of \code{df} containing the wins for
-#' each outcome.
-#' @param tie A string indicating the column of \code{df} containing the ties for
-#' each outcome.
-#' @param loss A string indicating the column of \code{df} containing the losses for
-#' each outcome.
-#' @param loss_inherit A string indicating the column of \code{df} containing the
-#' inherited losses for each outcome.
-#' @param effect_individual A string indicating the column of \code{df} containing
-#' the effect size for each outcome when considered independently (not ranked).
-#' @param ci_lower_individual A string indicating the column of \code{df} containing
-#' the lower boundary of the confidence interval for the effect size for each outcome
-#' when considered independently (not ranked).
-#' @param ci_upper_individual A string indicating the column of \code{df} containing
-#' the upper boundary of the confidence interval for the effect size for each outcome
-#' when considered independently (not ranked).
-#' @param effect_cumulative A string indicating the column of \code{df} containing
-#' the cumulative effect size for each outcome when considered ranked.
-#' @param ci_lower_cumulative A string indicating the column of \code{df} containing
-#' the lower boundary of the confidence interval for the cumulative effect size for
-#' each outcome when considered ranked.
-#' @param ci_upper_cumulative A string indicating the column of \code{df} containing
-#' the upper boundary of the confidence interval for the cumulative effect size for
-#' each outcome when considered ranked.
-#'
-#'
-#' @details
-#' The win ratio plot function is a way to visualise win ratio/win odds/etc. estimates
-#' based on prioritised outcomes. This is done with two plots:
-#' \describe{
-#' \item{}{The left plot visualises the contribution of each outcome level
-#' of the prioritised outcome hierarchy to the overall proportion of wins, losses
-#' and ties. At each successive outcome level, ties remaining from the previous level are
-#' resolved and then passed onto the next outcome.}
-#' \item{}{The right plot presents a forest plot of the individual outcome effect
-#' estimate as well as the cumulative effect estimate to show how the effect
-#' estimate shifts as successive outcomes are considered.}
-#' }
-#'
-#' The dataframe \code{df} must contain columns for all parameters listed except
-#' \code{effect_name, neutral_point and tie_handling}.
-#'
-#' Note, the outcome hierarchy is inferred from the order of the rows in the \code{df},
-#' whereby the first row is the highest level outcome, etc.
-#'
-#' \code{tie_handling} specifies how ties are handled in the analysis so that a
-#' dashed line at the position ties were assigned to the wins and losses in the overall
-#' row can be added. This should be set to \code{"drop"} or \code{"split"}. If not
-#' specified no dashed line will appear indicating the position of splitting of ties
-#' for the overall level.
-#'
-#' Note, at each outcome level, \code{win} and \code{loss} correspond to the new wins and
-#' losses that were not already calculated from outcomes with greater priority.
-#' \code{win_inherit} and \code{loss_inherit} correspond to the cumulative sums of
-#' wins and losses that are inherited from higher ranked outcomes.
-#'
-#'
-#' @return
-#' A \code{patchwork} object containing two plots (left and right):
-#' \describe{
-#' \item{}{The left plot shows the proportions of inherited
-#' wins/wins/ties/losses/inherited losses for each outcome when ranked and overall.}
-#' \item{}{The right plot shows the measured effect (e.g., win ratio) at both a
-#' cumulatively ranked outcome level (with overall) and for each outcome independently.}
-#' }
-#'
-#'
-#' @examples
-#' # Create a dataframe containing analysis results to be plotted
-#' test_data_overall_fn <- data.frame(outcome_names=c("Death", "Length of hospital stay",
-#'                                 "Time off work", "Wellbeing"),
-#'                                 win_inherit=c(0,15,25,33),
-#'                                 win=c(15,10,8,15),
-#'                                 tie=c(80,60,40,15),
-#'                                 loss=c(5,10,12,10),
-#'                                 loss_inherit=c(0,5,15,27),
-#'                                 win_ratio=c(3,1,0.67,1.5),
-#'                                 ci_lower=c(2.6,0.6,0.27,1.1),
-#'                                 ci_upper=c(3.4,1.4,1.07,1.9),
-#'                                 win_ratio_cum=c(3,1.67,1.22,1.30),
-#'                                 ci_lower_cum=c(2.6,1.32,0.92,1.10),
-#'                                 ci_upper_cum=c(3.4,2.02,1.52,1.50))
-#'
-#' # Visualise the prioritised outcome effect estimate
-#' po_plot(test_data_overall_fn, effect_name = "Win Ratio", neutral_point = 1,
-#'                         outcome_names="outcome_names", win_inherit="win_inherit",
-#'                         win="win", tie="tie", loss="loss", loss_inherit="loss_inherit",
-#'                         effect_individual="win_ratio", ci_lower_individual="ci_lower",
-#'                         ci_upper_individual="ci_upper", effect_cumulative="win_ratio_cum",
-#'                         ci_lower_cumulative="ci_lower_cum", ci_upper_cumulative="ci_upper_cum")
-#'
-#' @references
-#' Pocock SJ, Ariti CA, Collier TJ, Wang D. The win ratio: a new approach to the analysis of composite endpoints in clinical trials based on clinical priorities. European Heart Journal. 2012;33(2):176-182. doi:10.1093/eurheartj/ehr352
-#'
-#' Dong G, Hoaglin DC, Qiu J, et al. The Win Ratio: On Interpretation and Handling of Ties. Statistics in Biopharmaceutical Research. 2020;12(1):99-106. doi:10.1080/19466315.2019.1575279
-#'
-#' Buyse M. Generalized pairwise comparisons of prioritized outcomes in the two-sample problem. Statistics in Medicine. 2010;29(30):3245-3257. doi:10.1002/sim.3923
 #'
 #'
 plot.Winnify <- function(x, log_scale=F,
@@ -339,8 +215,6 @@ plot.Winnify <- function(x, log_scale=F,
         if(is.null(effect_name)) {
                 effect_name <-  "Effect Size"
         }
-
-
 
         if(is.null(neutral_point)) {
                 neutral_point <- attr(x,"neutral_point")

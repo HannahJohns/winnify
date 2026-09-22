@@ -14,8 +14,10 @@ statistic <- function(formula,data,...){
 x <- winnify(mRS+early_neuro_improvement~treat,
              statistic = statistic,
              data = neuro_improvement)
-
 plot(x,neutral_point = 1,log_scale = F)
+
+
+
 
 
 # Calculate time at home as time post discharge
@@ -26,18 +28,36 @@ remapcap$homeTime <- (remapcap$deathTime-remapcap$dischargeTime)
 # Collapse treatment groups so only one treatment group
 remapcap$group <- ifelse(remapcap$group == "uc", "Control", "Treatment")
 
-library(WinRatio)
 # Run winratio function on dataset
-wr1 <- winratio(id = "id", trt = "group", active = "Treatment",
+wr1 <- WinRatio::winratio(id = "id", trt = "group", active = "Treatment",
                 outcomes = list("Death" = c("deathStatus", "s", "deathTime"),
-                                "Time at home" = c("homeTime", "c", "<")),
+                                "Time at home" = c("homeTime", "c", ">")),
                 fu = "deathTime", data = remapcap)
 
 summary(wr1)
 plot(as_winnify(wr1))
 
 
+remapcap
 
+
+
+library(WINS)
+
+statistic <- function(formula,data,...){
+
+
+        this_data <- data.frame()
+
+
+
+        fit <- genodds::genodds(response = data[,as.character(formula)[2]],
+                                group = data[,as.character(formula)[3]])
+        out <- c(fit$pooled_lnodds,fit$pooled_lnconf.int, fit$pooled_p)
+        names(out) <- c("estimate","lower","upper","pval")
+        out[1:3] <- exp(out[1:3])
+        out
+}
 
 
 
@@ -51,6 +71,11 @@ remapcap$homeTime <- (remapcap$deathTime-remapcap$dischargeTime)
 # Collapse treatment groups so only one treatment group
 remapcap$group <- ifelse(remapcap$group == "uc", "Control", "Treatment")
 remapcap$id <- 1:nrow(remapcap)
+
+formula <-
+
+
+
 
 library(WinRatio)
 # Run winratio function on dataset
