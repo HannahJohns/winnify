@@ -1,3 +1,209 @@
+library(WINS)
+
+?win.stat
+
+
+# Taken from COMPARE WINS
+# https://github.com/HannahJohns/compare-wins/blob/main/source/app/shiny/R/misc_functions.R
+
+wins <- function(formula, data, ...){
+
+}
+
+# WINS::win.stat
+wins_wrapper <- function(data, outcomes, arm, levels,
+                         preference_method="heirarchical",
+                         stratum=NULL,
+                         covariates=NULL,
+                         method = "unadjusted",
+                         stratum.weight = "MH-type",
+                         pvalue = "two-sided",
+                         alpha=0.05
+){
+
+        # First, we need to convert the data sheet into the correct format
+
+        formatted_data <- data.frame(id=1:nrow(data))
+        formatted_data$arm <- factor(data[,arm])
+
+        if(length(stratum)>0){
+                if(length(stratum)==1){
+                        formatted_data$stratum <- data[,stratum]
+                } else {
+                        formatted_data$stratum <- do.call("paste", lapply(stratum, function(x){data[,x]}))
+                }
+        } else {
+                stratum.weight <- "unstratified"
+        }
+
+        if(preference_method=="heirarchical"){
+
+                ep_type <- {}
+                np_direction <- {}
+                tau <- {}
+                for(i in 1:length(outcomes)){
+                        ep_type[i] <- outcomes[[i]]$type
+                        tau[i] <- outcomes[[i]]$tau
+                        np_direction[i] <- c(`>`="larger",`<`="smaller")[outcomes[[i]]$direction]
+
+                        formatted_data[,sprintf("Y_%d",i)] <- data[,outcomes[[i]]$var]
+                        if(ep_type[i] %in% c("surv","tte")){
+                                ep_type[i] <- "tte"
+                                formatted_data[,sprintf("Delta_%d",i)]  <- data[,outcomes[[i]]$indicator]
+
+                                if(length(
+                                        setdiff(
+                                                unique(formatted_data[,sprintf("Delta_%d",i)]),
+                                                0:1
+                                        )
+                                ) >0 ){
+
+                                        warning(sprintf(
+                                                "%s includes values other than 1 and 0. All values not 1 assumed censored.",
+                                                outcomes[[i]]$var
+                                        ), stderr())
+
+                                        formatted_data[,sprintf("Delta_%d",i)] <- ifelse(formatted_data[,sprintf("Delta_%d",i)]==1,1,0)
+                                }
+
+
+                        }
+                }
+
+        } else {
+                stop("NON-HEIRARCHICAL METHODS NOT IMPLEMENTED YET")
+        }
+
+
+        # Only support covariates at baseline for the time being.
+
+        # NOTE: This needs added
+        if(length(covariates)==0){
+                Z_t_trt <- Z_t_con <- NULL
+        } else {
+                # At present only support covariates at baseline
+                Z_t_con <- data.frame(id=1:nrow(formatted_data), time=0)
+                for(i in 1:length(covariates)){
+                        Z_t_con[,covariates[i]] <- data[,covariates[i]]
+                }
+                Z_t_trt <-Z_t_con
+
+                # Z_t_trt/con must contain only controls and treatments respectively
+                Z_t_trt <- Z_t_trt[which(formatted_data$arm==levels[1]),]
+                Z_t_con <- Z_t_con[which(formatted_data$arm==levels[2]),]
+        }
+
+        out <- WINS::win.stat(data = formatted_data,
+                              ep_type = ep_type,
+                              priority = 1:length(outcomes),
+                              arm.name = levels,
+                              tau = tau,
+                              np_direction = np_direction,
+                              Z_t_trt = Z_t_trt,
+                              Z_t_con = Z_t_con,
+                              method = method,
+                              stratum.weight = stratum.weight,
+                              pvalue = pvalue,
+                              alpha=alpha,
+                              summary.print=FALSE
+        )
+
+        # Format results into a table to report back
+
+        estimates <- do.call("rbind",lapply(names(out$Win_statistic),function(i){
+                cbind(outcome=i,
+                      as.data.frame(matrix(out$Win_statistic[[i]],nrow=1))
+                )
+        }))
+
+        colnames(estimates)[-1] <- c("estimate","lower","upper")
+
+        estimates$p <- c(out$p_value)
+
+        # Win/loss/tie proportions only make sense to report if unstratified
+        if(length(stratum)==0){
+                estimates$win <- out$Win_prop$P_trt
+                estimates$loss <- out$Win_prop$P_con
+                estimates$tie <- 1 - (out$Win_prop$P_trt + out$Win_prop$P_con)
+
+        } else {
+
+                #TODO: Get wins/losses/ties in stratified analysis.
+                # This can be manually extracted.
+
+                # N is sample size per strata
+                # N_event is number of events per arm.
+                # Based on the following code:
+
+                # https://github.com/cran/WINS/blob/master/R/unadjusted.win.stat.R#L146
+
+                # It looks like number of events is based on if there is
+                # at least one event on any component, i.e. we fall back to composite
+                # tte for estimating these weights.
+
+
+                xtab <- table(
+                        formatted_data$stratum,
+                        formatted_data$arm
+                )
+
+                N = apply(xtab,1,sum)
+
+                total_pairs <- apply(xtab,1,prod)
+
+                if(any(ep_type=="tte")){
+                        ind.tte <- which(ep_type == "tte")
+                        n_tte <- length(ind.tte)
+
+                        N_event <- apply(as.matrix(
+                                formatted_data[,sprintf("Delta_%d",ind.tte)],
+                                ncol = n_tte), 1, function(x) max(x)>0)
+
+                        N_event <- tapply(N_event,formatted_data$stratum,sum)
+
+                } else {
+                        N_event=N
+                }
+
+
+                w_stratum = switch(stratum.weight,
+                                   "unstratified" = 1,
+                                   "equal" = rep(1/length(N),length(N)),
+                                   "MH-type" = (1/N)/sum(1/N),
+                                   "wt.stratum1" = N/sum(N),
+                                   "wt.stratum2" = N_event/sum(N_event)
+                )
+
+
+
+                wins <- out$Win_prop[,"P_trt"]*total_pairs
+                losses <- out$Win_prop[,"P_con"]*total_pairs
+                ties <- total_pairs - wins - losses
+
+
+                estimates$win <- sum(w_stratum*wins)
+                estimates$loss <- sum(w_stratum*losses)
+                estimates$tie <- sum(w_stratum*ties)
+
+                total_pairs <- estimates$win + estimates$loss +  estimates$tie
+
+                estimates$win  <-  estimates$win/total_pairs
+                estimates$loss  <-  estimates$loss/total_pairs
+                estimates$tie  <-  estimates$tie/total_pairs
+
+        }
+
+        estimates
+
+}
+
+
+
+
+
+
+
+
 plot(result, pairs.fill = "RdBu",effect_neutral_point = 1)
 
 #winnify() test
