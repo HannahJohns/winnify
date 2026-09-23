@@ -24,8 +24,6 @@ ignore_missing = FALSE
 )
 }
 \arguments{
-\item{data}{A data frame containing analysis results}
-
 \item{outcome_names}{A string indicating the column of \code{data} containing the names
 of the outcomes.}
 
@@ -74,6 +72,8 @@ each outcome when considered independently (not ranked).}
 
 \item{ignore_missing}{A logical indicating if missing columns are allowed. If \code{TRUE}, missing columns are replaced with \code{NA}}
 
+\item{data}{A data frame containing analysis results}
+
 \item{ci_lower_individual}{A string indicating the column of \code{data} containing
 the lower boundary of the confidence interval for the effect size for each outcome
 when considered independently (not ranked).}
@@ -86,7 +86,6 @@ when considered independently (not ranked).}
 Convert a data frame to a Winnify object
 }
 \examples{
-
 
 data <- data.frame(outcome_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
                    win_inherit=c(0,15,25,33),

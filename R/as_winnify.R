@@ -1,3 +1,17 @@
+#' Convert other objects to a winnify object
+#' @aliases as_winnify
+#'
+#' @usage as_winnify(x, ...)
+#' @param x an object used to select a method
+#' @param ... further arguments passed to other methods
+#'
+#' @details as_winnify methods exist for the following objects:
+#' \itemize{
+#' \item data.frame objects from base R. See \code{\link{as_winnify.data.frame}} for details.
+#' \item WinRatio objects returned by the \code{\link[WinRatio]{winratio}} function. See \code{\link{as_winnify.WinRatio}} for details.
+#' }
+"as_winnify"
+
 #' Convert a data frame to a Winnify object
 #'
 #' @exportS3Method
@@ -67,7 +81,6 @@
 #'
 #' @examples
 #'
-#'
 #' data <- data.frame(outcome_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
 #'                    win_inherit=c(0,15,25,33),
 #'                    win=c(15,10,8,15),
@@ -99,7 +112,7 @@
 #' plot(result)
 #'
 #'
-as_winnify.data.frame <- function(data,
+as_winnify.data.frame <- function(x,
                                   outcome_names = "outcome_names",
                                   win_inherit="win_inherit",
                                   win="win",
@@ -115,13 +128,13 @@ as_winnify.data.frame <- function(data,
                                   upper_individual ="upper_individual",
                                   pval_individual ="pval_individual",
                                   neutral_point=NULL, tie_handling=NULL, effect_name=NULL,
-                                  ignore_missing = FALSE
+                                  ignore_missing = FALSE,
+                                  ...
                                   )
 {
 
         # Include some checks to ensure that the argument inserted is a dataframe and that the necessary variables
         # are included in the dataframe and stop and report an error message if they are missing
-
 
         target_names <- c(outcome_names="outcome_names",
 
@@ -148,22 +161,22 @@ as_winnify.data.frame <- function(data,
                                  estimate_individual, lower_individual, upper_individual,pval_individual
                                  )
 
-        if(!all(names(target_names) %in% names(data))) {
+        if(!all(names(target_names) %in% names(x))) {
 
-                unfound_values <- setdiff(names(target_names), colnames(data))
+                unfound_values <- setdiff(names(target_names), colnames(x))
 
                 if(ignore_missing){
 
-                        for(i in unfound_values) data[,i] <- NA
+                        for(i in unfound_values) x[,i] <- NA
 
                         unfound_values <- paste(unfound_values,collapse=", ")
-                        warning(sprintf("Missing variables for: %s. Check input dataframe contains these variables.",unfound_values))
+                        warning(sprintf("Missing variables for: %s. Check input data frame contains these variables.",unfound_values))
 
 
                 } else {
 
                         unfound_values <- paste(unfound_values,collapse=", ")
-                        stop(sprintf("Missing variables for: %s. Check input dataframe contains these variables.",unfound_values))
+                        stop(sprintf("Missing variables for: %s. Check input data frame contains these variables.",unfound_values))
                 }
 
 
@@ -171,7 +184,7 @@ as_winnify.data.frame <- function(data,
 
 
         # Select only necessary columns (in case extra columns in data) and reorder columns so that they are in correct order for the renaming function
-        out <- data[,c(outcome_names,
+        out <- x[,c(outcome_names,
                     win_inherit, win, tie, loss, loss_inherit,
                     estimate_cumulative, lower_cumulative, upper_cumulative,pval_cumulative,
                     estimate_individual, lower_individual, upper_individual,pval_individual
@@ -207,7 +220,6 @@ as_winnify.data.frame <- function(data,
 #'
 #' Convenience function for visualising Win Ratio as estimated by \code{\link[WinRatio]{winratio}}
 #' from the \code{WinRatio} package.
-#'
 #'
 #' @exportS3Method
 #'
@@ -249,7 +261,7 @@ as_winnify.data.frame <- function(data,
 #' result <- as_winnify(wr)
 #' plot(result)
 #'
-as_winnify.WinRatio <- function(x){
+as_winnify.WinRatio <- function(x,...){
         # Extract data and create dataframe
         wr_output_list <- lapply(1:length(x$call$outcomes), function(i) {
 

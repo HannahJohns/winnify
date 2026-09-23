@@ -25,7 +25,7 @@ primary variable of interest, which should contain exactly two groups.
 statistic should be a function that takes a formula and a dataset and should return a named vector of length 4 containing
 estimate, lower, upper and pval
 
-NOTE: wins/losses/ties in the summary are not adjusted for covariates, even if statistic is adjusted.
+NOTE: wins/losses/ties in the summary are not adjusted for covariates, even if \code{statistic} returns adjusted values.
 }
 \examples{
 
@@ -43,9 +43,7 @@ result <- winnify(mRS+early_neuro_improvement~treat,
                   statistic = statistic,
                   data = neuro_improvement)
 
-plot(result,neutral_point = 1,log_scale = FALSE)
-
-
+plot(result,effect_neutral_point = 1,effect_scale_log = FALSE)
 
 
 }

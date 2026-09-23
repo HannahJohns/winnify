@@ -1,3 +1,5 @@
+plot(result, pairs.fill = "RdBu",effect_neutral_point = 1)
+
 #winnify() test
 
 rm(list = ls())
@@ -15,9 +17,6 @@ x <- winnify(mRS+early_neuro_improvement~treat,
              statistic = statistic,
              data = neuro_improvement)
 plot(x,neutral_point = 1,log_scale = F)
-
-
-
 
 
 # Calculate time at home as time post discharge
