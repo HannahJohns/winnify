@@ -1,14 +1,77 @@
-library(WINS)
+rm(list=ls())
 
-?win.stat
+library(WINS)
+library(survival)
+
+df <- data_tte
+
+df$strata <- rbinom(n=nrow(df),prob = 0.5,size = 1)
+
+df1 <- Z_t_trt
+df2 <- Z_t_con
+
+df$id <- paste0(df$arm,df$id)
+df1$id <- paste0("A",df1$id)
+df2$id <- paste0("B",df2$id)
+
+df$time <- 0
+
+data <- merge(
+        rbind(
+                df1,
+                df2
+        ),
+        df,
+        all.x = T
+)
+#
+# data$Surv1 <- Surv(data$Y_1,data$Delta_1)
+# data$Surv2 <- Surv(data$Y_2,data$Delta_2)
+# data$Surv3 <- Surv(data$Y_3,data$Delta_3)
+
+data$arm <- factor(data$arm, levels = c("B","A"))
+
+g <- function(x){x}
+s <- function(x){x}
+s <- function(x){x}
+id <- function(x){x}
+
+# formula <- Surv1+Surv2+Surv3~group(arm) + id(id) + time(time) + Z1 + Z2
+
+formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~group(arm) + strata(strata) + id(id) + time(time) + Z1 + Z2
+
+np_direction = "np_direction"
+tau = 0
+stratum.weight <- "MH-type"
+
+# data=main_data,
+# ep_type=ep_type,
+# Z_t_trt = covariate_data_trt,
+# Z_t_con = covariate_data_con,
+# iptw.weight = NULL,
+# arm.name = rev(levels(main_data[,"arm"])),
+# priority,
+# alpha = 0.05,
+# digit=5,
+# tau=tau,
+# np_direction =np_direction,
+# horizon = Inf,
+# win.strategy = NULL,
+# pvalue = "two-sided",
+stratum.weight = "MH-type",
+method  = "unadjusted",
+summary.print = F
+
+
+
+
+
+
+
 
 
 # Taken from COMPARE WINS
 # https://github.com/HannahJohns/compare-wins/blob/main/source/app/shiny/R/misc_functions.R
-
-wins <- function(formula, data, ...){
-
-}
 
 # WINS::win.stat
 wins_wrapper <- function(data, outcomes, arm, levels,
