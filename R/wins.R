@@ -44,6 +44,7 @@
 #'
 #' The left hand side of \code{formula} provides each endpoint as successive terms,
 #' with the most important endpoint on the left and the least important on the right.
+#' Values for \code{np_direction} and \code{tau} correspond to each of these terms in this order.
 #'
 #' The right hand side of \code{formula} provides grouping variable, ID variable, strata, time and any covariates used for inverse-probability of censoring weighting.
 #' These are marked using the following functions:
@@ -84,8 +85,6 @@ wins <- function(formula, data,
 
         if(length(stratum.weight)>1) stratum.weight <- NULL
         if(length(method)>1) method <- NULL
-
-        warning("setting defaults to null breaks things currently. This needs caught and corrected below.")
 
         otherArgs <- list(...)
         if(!is.null(otherArgs$ep_type)) stop("argument ep_type is inferred and should not be supplied")
@@ -262,8 +261,19 @@ wins <- function(formula, data,
         # Covariate Data Setup --------------------------------
 
         if(length(otherVars)>0){
+
+                if(is.null(method)){
+                        if(is.null(iptw.weight)){
+                                method  <- "covipcw"
+                        } else {
+                                method <- "iptw_covipcw"
+                        }
+                }
+
                 # If no time variable, assume covariates are measured at baseline
                 if(is.null(timeVar)){
+
+                        stop("null timeVar isn't written yet")
 
 
                 } else {
@@ -307,6 +317,15 @@ wins <- function(formula, data,
                 }
 
         } else {
+                if(is.null(method)){
+                        if(is.null(iptw.weight)){
+                                method  <- "unadjusted"
+                        } else {
+                                method <- "iptw"
+                        }
+                }
+
+
                 covariate_data_trt <- covariate_data_con <- NULL
         }
 
@@ -328,18 +347,18 @@ wins <- function(formula, data,
                 ep_type=ep_type,
                 Z_t_trt = covariate_data_trt,
                 Z_t_con = covariate_data_con,
-                iptw.weight = NULL,
+                iptw.weight = iptw.weight,
                 arm.name = rev(levels(main_data[,"arm"])),
                 priority,
-                alpha = 0.05,
+                alpha = alpha,
                 digit=10 ,     # Does nothing, completely arbitrary when summary.print = F
                 tau=tau,
                 np_direction =np_direction,
-                horizon = Inf,
-                win.strategy = NULL,
-                pvalue = "two-sided",
-                stratum.weight = "MH-type",
-                method  = "unadjusted",
+                horizon = horizon,
+                win.strategy = win.strategy,
+                pvalue = pvalue,
+                stratum.weight = stratum.weight,
+                method  = method,
                 summary.print = F,
                 ...
         )
@@ -356,7 +375,6 @@ wins <- function(formula, data,
 
         estimates$p <- c(out$p_value)
 
-        # Win/loss/tie proportions only make sense to report if unstratified
         if(length(stratum)==0){
                 estimates$win <- out$Win_prop$P_trt
                 estimates$loss <- out$Win_prop$P_con
@@ -364,9 +382,7 @@ wins <- function(formula, data,
 
         } else {
 
-
-
-                # win.stat also doesn't pool win proportions across stratum.
+                # win.stat doesn't pool win proportions across stratum.
                 # Winnify needs this for the plot.
 
                 # Fortunately, this can be manually extracted.
@@ -404,8 +420,6 @@ wins <- function(formula, data,
                         N_event=N
                 }
 
-
-
                 w_stratum = switch(stratum.weight,
                                    "unstratified" = 1,
                                    "equal" = rep(1/length(N),length(N)),
@@ -414,12 +428,9 @@ wins <- function(formula, data,
                                    "wt.stratum2" = N_event/sum(N_event)
                 )
 
-
-
                 wins <- out$Win_prop[,"P_trt"]*total_pairs
                 losses <- out$Win_prop[,"P_con"]*total_pairs
                 ties <- total_pairs - wins - losses
-
 
                 estimates$win <- sum(w_stratum*wins)
                 estimates$loss <- sum(w_stratum*losses)
