@@ -7,9 +7,20 @@
 #'
 #' @usage wins(formula, data)
 #'
-#' @param formula An object of class formula describing the analyses to run. Details of model specification are given in Details
-#' @param statistic A function for performing analysis based on a formula and data. Details are given in Details.
+#' @param formula An object of class formula describing the analyses to run. Format for model specification are given in Details
 #' @param data A data.frame to analyse
+#' @param effect.size A character vector indicating which effect size measures to return. Allows partial matches with abbreviations, e.g. "wr" will match to "Win Ratio"
+#' @param iptw.weight A numeric vector giving the weights for IPT weighting. See \link[WINS]{win.stat}
+#' @param alpha  A numeric argument giving the significance level. See \link[WINS]{win.stat}
+#' @param tau A numeric vector argument giving the threshold for minimal clinically important difference. \link[WINS]{win.stat}
+#' @param np.direction A chacaracer vector indicating if a larger or smaller value is better. See the \code{np_direction} argument in \link[WINS]{win.stat}
+#' @param horizon A numeric argument giving Time horizon of interest. See \link[WINS]{win.stat}
+#' @param win.strategy A custom function for determining wins, losses and ties. See \link[WINS]{win.stat}
+#' @param pvalue A numeric value giving the significance level. See \link[WINS]{win.stat}
+#' @param stratum.weight A character value giving the method for weighting each stratum. See \link[WINS]{win.stat}
+#' @param method A character value giving the method for weighting individual participants. See \link[WINS]{win.stat}
+#' @param ... Arguments passed from user defined functions for \code{win.strategy}. See \link[WINS]{win.stat}
+#'
 #'
 #' @details
 #'
@@ -44,7 +55,7 @@
 #'
 #' The left hand side of \code{formula} provides each endpoint as successive terms,
 #' with the most important endpoint on the left and the least important on the right.
-#' Values for \code{np_direction} and \code{tau} correspond to each of these terms in this order.
+#' Values for \code{np.direction} and \code{tau} correspond to each of these terms in this order.
 #'
 #' The right hand side of \code{formula} provides grouping variable, ID variable, strata, time and any covariates used for inverse-probability of censoring weighting.
 #' These are marked using the following functions:
@@ -63,25 +74,54 @@
 #'
 #'
 wins <- function(formula, data,
-                 effect.size = c("winratio","netbenefit","winodds"),
-                 iptw.weight=NULL, alpha=0.05,
+                 effect.size = c("Win Ratio","Win Odds","Net Benefit"),
+                 iptw.weight=NULL,
+                 alpha=0.05,
                  tau = 0,
-                 np_direction = "larger",
+                 np.direction = "larger",
                  horizon =Inf,
                  win.strategy = NULL,
                  pvalue = c("two-sided","one-sided"),
                  stratum.weight =  c("unstratified","MH-type","wt.stratum1","wt.stratum2","equal"),
                  method  = c("unadjusted","ipcw_tau","ipcw","covipcw","iptw","iptw_ipcw","iptw_covipcw"),
-                 summary.print = F,
                  ...){
 
-        effect_size <- match.arg(effect_size)
-        pvalue <- match.arg(effect_size)
+        if(!is.null(iptw.weight)) stop("iptw is not working yet we need to make it compatible with long form data")
 
-        # If default matches are dependent on input, check this here.
+        # Allow common abbreviations of effect.size as inputs, e.g. wr, wo, nb that can't be caught by pmatch
+        effect_size_wr <- effect_size_wo <- effect_size_nb <- rep(NA, length(effect.size))
+
+        effect_size_wr[grepl("w(in)*.*r(atio)*",tolower(effect.size))] <- "Win Ratio"
+
+        # There's probably a regex that can combine these but
+        # this is honestly simpler.
+        effect_size_wo[grepl("w(in)*.*o(dds)*",tolower(effect.size)) & !grepl("w(in)*.*r(atio)*",tolower(effect.size))] <- "Win Odds"
+        effect_size_nb[grepl("n(et)*.*b(enefit)*",tolower(effect.size))] <- "Net Benefit"
+
+        count_es_matches <- as.numeric(!is.na(effect_size_wr)) +   as.numeric(!is.na(effect_size_wo)) +   as.numeric(!is.na(effect_size_nb))
+
+        if(any(count_es_matches>1)){
+                stop(sprintf("%s in effect.size matched to multiple of Win Ratio, Win Odds and Net Benefit",
+                             paste(effect.size[count_es_matches>1],collapse = ",")
+                             ))
+        }
+
+        if(any(count_es_matches==0)){
+                stop(sprintf("%s in effect.size could not be matched to Win Ratio, Win Odds or Net Benefit",
+                             paste(effect.size[count_es_matches==0],collapse = ",")
+                ))
+        }
+
+        effect.size[!is.na(effect_size_wr)] <- effect_size_wr[!is.na(effect_size_wr)]
+        effect.size[!is.na(effect_size_wo)] <- effect_size_wo[!is.na(effect_size_wo)]
+        effect.size[!is.na(effect_size_nb)] <- effect_size_nb[!is.na(effect_size_nb)]
+
+        pvalue <- match.arg(pvalue,choices = c("two-sided","one-sided"))
+
+        # If default matches are dependent on other inputs, check this here.
         # We'll set as NULL if we need to re-set later.
-        stratum.weight <- match.arg(stratum.weight, several.ok = TRUE)
-        method <- match.arg(method, several.ok = TRUE)
+        stratum.weight <- match.arg(stratum.weight,choices =  c("unstratified","MH-type","wt.stratum1","wt.stratum2","equal"), several.ok = TRUE)
+        method <- match.arg(method, choices = c("unadjusted","ipcw_tau","ipcw","covipcw","iptw","iptw_ipcw","iptw_covipcw"), several.ok = TRUE)
 
         if(length(stratum.weight)>1) stratum.weight <- NULL
         if(length(method)>1) method <- NULL
@@ -92,53 +132,50 @@ wins <- function(formula, data,
 
         # Formula Parsing --------------------------------
 
-        lhs <- terms.formula(formula[c(1,2)],specials = c("id","group","strata","time"))
+        specials <- c("wins_id","wins_arm","wins_stratum","wins_time")
+
+        lhs <- terms.formula(formula[c(1,2)],specials = specials)
 
         # We shouldn't have any specials on the left hand side
-        for(i in c("id","group","stratum","time")){
+        for(i in specials){
                 if(length(attr(lhs,"specials")[[i]])>0) stop(sprintf("%s() should not be used on left hand side of formula",i))
         }
 
-        rhs <- terms.formula(formula[c(1,3)],specials = c("id","group","strata","time"))
-        for(i in c("id","group","stratum","time")){
+        rhs <- terms.formula(formula[c(1,3)],specials = specials)
+        for(i in specials){
                 if(length(attr(rhs,"specials")[[i]])>1) stop(sprintf("%s() should only be used once in the right hand side of formula",i))
         }
 
 
-        idVar <- attr(rhs,"specials")$id
+
+        idVar <- attr(rhs,"specials")$wins_id
         if(!is.null(idVar)){
-                idVar <-gsub("^id\\(|\\)$","",attr(rhs,"term.labels")[idVar])
+                idVar <- attr(rhs,"term.labels")[idVar]
         }
 
-        groupVar <- attr(rhs,"specials")$group
-        if(!is.null(groupVar)){
-                groupVar <-gsub("^group\\(|\\)$","",attr(rhs,"term.labels")[groupVar])
-        } else {
+        groupVar <- attr(rhs,"specials")$wins_arm
+        if(is.null(groupVar)){
                 stop("group() is required")
+        } else {
+                groupVar <- attr(rhs,"term.labels")[groupVar]
         }
 
-
-        strataVar <- attr(rhs,"specials")$strata
-        if(!is.null(strataVar)){
-                strataVar <-gsub("^strata\\(|\\)$","",attr(rhs,"term.labels")[strataVar])
-
-                if(is.null(stratum.weight)){
-                        stratum.weight <- "MH-type"
-                }
-                if(stratum.weight == "unstratified") warning("stratum.weight is unstratified, but strata was specified")
-        } else {
+        strataVar <- attr(rhs,"specials")$wins_stratum
+        if(is.null(strataVar)){
                 if(is.null(stratum.weight)){
                         stratum.weight <- "unstratified"
                 }
                 if(stratum.weight == "unstratified") warning(sprintf("stratum.weight is %s, but strata was not specified",stratum.weight))
+        } else {
+                strataVar <- attr(rhs,"term.labels")[strataVar]
         }
 
-        timeVar <- attr(rhs,"specials")$time
+        timeVar <- attr(rhs,"specials")$wins_time
         if(!is.null(timeVar)){
-                timeVar <-gsub("^time\\(|\\)$","",attr(rhs,"term.labels")[timeVar])
+                timeVar <- attr(rhs,"term.labels")[timeVar]
         }
 
-        # Any other variables are covariates for covariate
+        # Any other variables are covariates for covariate weighted IPCW
         otherVars <- attr(rhs,"term.labels")[setdiff(1:length(attr(rhs,"term.labels")), unlist(attr(rhs,"specials")))]
 
         # Main Data Setup --------------------------------
@@ -168,6 +205,8 @@ wins <- function(formula, data,
         }
 
         if(length(strataVar)>0){
+                stratum.weight <- "MH-type"
+
                 main_data <- cbind(
                         main_data,
                         data.frame(
@@ -176,6 +215,10 @@ wins <- function(formula, data,
                 )
         } else {
                 # TODO: Check if stratified analysis was specified and error
+
+                if(!is.null(stratum.weight)) if(stratum.weight != "unstratified") warning(sprintf("stratum.weight is %s but no wins_stratum was specified",stratum.weight ))
+
+                stratum.weight <- "unstratified"
         }
 
 
@@ -208,19 +251,16 @@ wins <- function(formula, data,
         }
 
         # Check these against ep_type
-        np_direction <- "larger"
-        tau <- 0
-
-        if(length(np_direction)==1){
-                np_direction <- rep(np_direction,length(ep_type))
+        if(length(np.direction)==1){
+                np.direction <- rep(np.direction,length(ep_type))
         } else {
-                stop("not written yet")
+                stop("wrapper currently only supports np.direction of length 1")
         }
 
         if(length(tau)==1){
                 tau <- rep(tau,length(ep_type))
         } else {
-                stop("not written yet")
+                stop("wrapper currently only supports tau of length 1")
         }
 
         priority <- 1:length(ep_type)
@@ -230,7 +270,6 @@ wins <- function(formula, data,
         # Summarise main_data by id. The main dataset should only have
 
         main_data <- do.call("rbind",by(main_data,main_data[,"id"],function(x){
-
                 out <- x
                 out <- out[1,]
 
@@ -239,15 +278,26 @@ wins <- function(formula, data,
                         thisVar <- x[,i]
                         thisVar <- unique(thisVar[!is.na(thisVar)])
 
-                        if(length(thisVar)==0){
-                                warning("No non-missing value found for ID %s. REMOVED IT",
+                        # This level of granularity of warning is overkill.
+                        # Just warn that rows got dropped.
 
-                                )
-                        }
+                        # if(length(thisVar)==0){
+                        #         warning(sprintf("No non-missing value for %s found in %s %s",
+                        #                         i,
+                        #                         ifelse(is.null(idVar),"row",idVar),
+                        #                         out[,"id"]
+                        #                         )
+                        #         )
+                        # }
+
                         if(length(thisVar)>1){
-                                stop("Multiple values found for ID %s",
-
+                                stop(sprintf("Multiple values of %s found in %s %s",
+                                                i,
+                                                ifelse(is.null(idVar),"row",idVar),
+                                                out[,"id"]
                                 )
+                                )
+
                         }
                         out[,i] <- thisVar
 
@@ -257,6 +307,10 @@ wins <- function(formula, data,
                 out
         }))
 
+        toDrop <- apply(main_data,1,function(x){any(is.na(x))})
+        if(sum(toDrop)>0) warning(sprintf("%d records dropped",sum(toDrop)))
+
+        main_data <- main_data[which(!toDrop),]
 
         # Covariate Data Setup --------------------------------
 
@@ -294,12 +348,7 @@ wins <- function(formula, data,
                         )
 
                         for(i in otherVars){
-                                covariate_data <- cbind(
-                                        covariate_data,
-                                        data.frame(
-                                                time = eval(parse(text=i),envir = data)
-                                        )
-                                )
+                                covariate_data[, i] <- eval(parse(text=i),envir = data)
                         }
 
                         covariate_data_trt <- covariate_data[
@@ -329,18 +378,47 @@ wins <- function(formula, data,
                 covariate_data_trt <- covariate_data_con <- NULL
         }
 
-        # win.stat() expects ID is expected to be numeric and will
-        # crash if a character vector is suppled.
-        main_data$id <- factor(main_data$id)
+        # win.stat() expects ID is expected to be numeric, from 1 to n_trt or n_con, where this
+        # is separate across both arms. I.e. there should be two records with
+        # an ID of 1, 2, 3, etc. One will be ID 1 in the treatment group
+        # and one will be ID 1 in the control group. These are two different people,
+        # despite sharing the same ID.
+
+        # I can't change this behavior in a wrapper function, so instead we just transform
+        # the input data to comply with this expectation by doing an
+        # as.numeric(droplevels(factor())) conversion separately within the control
+        # and treatment datasets.
+
+        # We do the same to the main dataset and then join it all back together
+        # once we've converted IDs within each arm to numerics separately.
+
+        # This is stupid but it works. I don't think this trick is needed
+        # if we haven't supplied covariate data.
+
         if(!is.null(covariate_data_trt)){
-                covariate_data_trt$id <- factor(factor(covariate_data_trt$id), levels = levels(main_data$id))
-                covariate_data_con$id <- factor(factor(covariate_data_con$id), levels = levels(main_data$id))
+
+                covariate_data_trt$id <- factor(factor(covariate_data_trt$id))
+                covariate_data_con$id <- factor(factor(covariate_data_con$id))
+                covariate_data_trt$id <- droplevels(covariate_data_trt$id)
+                covariate_data_con$id <- droplevels(covariate_data_con$id)
 
                 covariate_data_trt$id <- as.numeric(covariate_data_trt$id)
                 covariate_data_con$id <- as.numeric(covariate_data_con$id)
-        }
 
-        main_data$id <- as.numeric(main_data$id)
+
+                con_id <- trt_id <- factor(main_data$id)
+                trt_id[main_data$arm==levels(main_data[,"arm"])[1]] <- NA
+                con_id[main_data$arm==levels(main_data[,"arm"])[2]] <- NA
+
+                con_id <- droplevels(con_id)
+                trt_id <- droplevels(trt_id)
+
+                con_id <- as.numeric(con_id)
+                trt_id <- as.numeric(trt_id)
+
+                main_data$id <- ifelse(is.na(con_id),trt_id,con_id)
+
+        }
 
         out <- win.stat(
                 data=main_data,
@@ -349,33 +427,34 @@ wins <- function(formula, data,
                 Z_t_con = covariate_data_con,
                 iptw.weight = iptw.weight,
                 arm.name = rev(levels(main_data[,"arm"])),
-                priority,
+                priority=priority,
                 alpha = alpha,
                 digit=10 ,     # Does nothing, completely arbitrary when summary.print = F
                 tau=tau,
-                np_direction =np_direction,
+                np_direction = np.direction,
                 horizon = horizon,
                 win.strategy = win.strategy,
                 pvalue = pvalue,
                 stratum.weight = stratum.weight,
                 method  = method,
-                summary.print = F,
+                summary.print = FALSE,
                 ...
         )
 
         # Format results into a table to report back
 
         estimates <- do.call("rbind",lapply(names(out$Win_statistic),function(i){
-                cbind(outcome=i,
+                cbind(effect_size=i,
                       as.data.frame(matrix(out$Win_statistic[[i]],nrow=1))
                 )
         }))
 
+        estimates$effect_size <- gsub("_"," ",estimates$effect_size)
         colnames(estimates)[-1] <- c("estimate","lower","upper")
 
         estimates$p <- c(out$p_value)
 
-        if(length(stratum)==0){
+        if(length(strataVar)==0){
                 estimates$win <- out$Win_prop$P_trt
                 estimates$loss <- out$Win_prop$P_con
                 estimates$tie <- 1 - (out$Win_prop$P_trt + out$Win_prop$P_con)
@@ -387,11 +466,14 @@ wins <- function(formula, data,
 
                 # Fortunately, this can be manually extracted.
 
+                # This code is copied directly from the internal workings of
+                # the win.stat() function
+
+                # https://github.com/cran/WINS/blob/master/R/unadjusted.win.stat.R#L146
+
                 # N is sample size per strata
                 # N_event is number of events per arm.
                 # Based on the following code:
-
-                # https://github.com/cran/WINS/blob/master/R/unadjusted.win.stat.R#L146
 
                 # It looks like number of events is based on if there is
                 # at least one event on any component, i.e. we fall back to composite
@@ -444,6 +526,27 @@ wins <- function(formula, data,
 
         }
 
-        estimates
+        estimates <- estimates[which(estimates$effect_size %in% effect.size),]
 
+        estimates$neutral_point <- ifelse(estimates$effect_size %in% c("Win Ratio","Win Odds"),1,0)
+        estimates$tie_handling <- ifelse(estimates$effect_size %in% c("Win Odds","Net Benefit"),"split","drop")
+
+        attr(estimates,"groups") <- levels(main_data[,"arm"])
+        attr(estimates,"arguments") <- list(
+                formula=formula,
+                data=data,
+                effect.size = effect.size,
+                iptw.weight = iptw.weight,
+                arm.name = rev(levels(main_data[,"arm"])),
+                alpha = alpha,
+                tau=tau,
+                np_direction = np.direction,
+                horizon = horizon,
+                win.strategy = win.strategy,
+                pvalue = pvalue,
+                stratum.weight = stratum.weight,
+                method  = method
+        )
+
+        return(estimates)
 }

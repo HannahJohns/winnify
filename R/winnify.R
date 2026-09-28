@@ -39,7 +39,7 @@ as_winnify <- function (x, ...) UseMethod("as_winnify", x)
 #' plot(result,effect_neutral_point = 1,effect_scale_log = FALSE)
 #'
 #'
-winnify <- function(formula, statistic, data, ...){
+winnify <- function(formula, statistic=NULL, data, ...){
 
         # Input sanitation
         data <- as.data.frame(data)
@@ -52,127 +52,128 @@ winnify <- function(formula, statistic, data, ...){
         lhs <- formula[-3]
         rhs <- formula[-2]
 
-        if(length(attr(terms(rhs),"term.labels"))>1) warning(sprintf(
-                "%s is the main comparator and all other terms will be ignored when calculating wins, losses and ties.",
-                attr(terms(rhs),"term.labels")[1]
-        ))
-
-        get_wlt <- function(y, x){
-
-                # xtab <- table(y,x)
-
-                # In future versions, adding w as an argument here will allow
-                # this to be weighted
-
-                w <- rep(1,length(x))
-
-                xtab <- aggregate(x = list("w" = w),
-                                  by = list("y" = y, "x"=x),
-                                  FUN = sum)
-
-                pairTab <- outer(
-                        xtab[xtab[,"x"]==unique(x)[1],"w"],
-                        xtab[xtab[,"x"]==unique(x)[2],"w"]
-                        )
-
-                wins <- sum(pairTab[upper.tri(pairTab,diag = F)])
-                losses <- sum(pairTab[lower.tri(pairTab,diag = F)])
-                ties <- sum(diag(pairTab))
-
-                return(c(win=wins,tie=ties,loss=losses))
-        }
-
-        # We need to modify the data sheet behind the scenes to add in our column
-        # for left hand side of formula. This is a little bit cursed but it will
-        # identify a safe column name for us to use
-        lhs_name <- "lhs_winnified"
-        lhs_name_attempt <- 1
-        while(lhs_name %in% colnames(data)){
-                lhs_name <- paste0("lhs_winnified",lhs_name_attempt)
-                lhs_name_attempt <- lhs_name_attempt+1
-        }
-
-        # We need to know the group intervention in order to calculate wins/losses/ties
-        main_comparator <- attr(terms(rhs),"term.labels")[1]
-
-        # We expect that the main comparator is a factor of two levels, with the second level
-        # being intervention.
-        data[,main_comparator] <- as.factor(data[,main_comparator])
-        if(length(levels(data[,main_comparator])) != 2) stop(sprintf("Main comparator %s must have exactly two levels",main_comparator))
-
         lhs <- attr(terms(lhs),"term.labels")
 
-        formula <- reformulate(attr(terms(rhs),"term.labels"),response = lhs_name)
 
-
+        # This is potentially something that should be parallelised
         out <- lapply(1:length(lhs), function(i){
-
-                # Run on individual values
                 tmp_data <- data
-                tmp_data[,lhs_name] <- tmp_data[,lhs[i]]
 
-                individual_result <- statistic(formula=formula,data = tmp_data,...)
+                tmp_formula <- as.formula(paste(c(lhs[i],as.character(rhs)),collapse = ""))
+                individual_result <- statistic(formula=tmp_formula,data = tmp_data,...)
 
-                # Construct ranks based on cumulative results and run on that
+                tmp_formula <- as.formula(paste(c(paste(lhs[1:i],collapse="+"),as.character(rhs)),collapse = ""))
+                cumulative_result <- statistic(tmp_formula,tmp_data,...)
 
-                ranks <- data[,lhs[1:i],drop=F]
-                ranks <- unique(ranks)
 
-                ranks <- ranks[
-                        do.call("order",c(lapply(1:ncol(ranks),function(i){
-                                ranks[,i]
-                        })))
-                        ,
-                        ,drop=F
-                ]
+                if(any(c("data.frame","matrix") %in% class(individual_result))){
+                        individual_result <- as.data.frame(individual_result)
+                        cumulative_result <- as.data.frame(cumulative_result)
+                } else {
+                        individual_result <- as.data.frame(matrix(individual_result,nrow = 1,dimnames = list(NULL,names(individual_result))))
+                        cumulative_result <- as.data.frame(matrix(cumulative_result,nrow = 1,dimnames = list(NULL,names(cumulative_result))))
+                }
 
-                ranks[,lhs_name] <- 1:nrow(ranks)
+                # Construct rows based on these results
+                if("effect_size" %in% colnames(individual_result)){
+                        effectSize_name <- individual_result[,"effect_size"]
+                } else {
+                        effectSize_name <- "Effect Size"
+                }
 
-                tmp_data <- merge(data,ranks)
 
-                cumulative_wlt <- get_wlt(y=tmp_data[,lhs_name],x=tmp_data[,main_comparator])
-                cumulative_wlt <- c(win_inherit =0, cumulative_wlt,loss_inherit =0) # Just initialise, we will set this up later
-                cumulative_result <- statistic(formula,tmp_data,...)
+                result <- data.frame(effect_size = effectSize_name,
+                                     outcome_names = i
+                )
 
-                # Construct row for object based on these results
-                names(individual_result) <- paste(names(individual_result),"individual",sep="_")
+                if("neutral_point" %in% colnames(individual_result)){
+                        result <- cbind(result,neutral_point = individual_result[,"neutral_point"])
+                }
 
-                names(cumulative_result) <- paste(names(cumulative_result),"cumulative",sep="_")
+                if("tie_handling" %in% colnames(individual_result)){
+                        result <- cbind(result,tie_handling = individual_result[,"tie_handling"])
+                }
 
-                c(cumulative_wlt,cumulative_result,individual_result)
+                colnames(individual_result) <- paste(colnames(individual_result),"individual",sep="_")
+                colnames(cumulative_result) <- paste(colnames(cumulative_result),"cumulative",sep="_")
+
+                result <- cbind(result,
+                                individual_result[,which(!grepl("^(effect_size|win|loss|tie|neutral_point|tie_handling)",colnames(individual_result)))],
+                                cumulative_result[,which(!grepl("^(effect_size|neutral_point|tie_handling)",colnames(cumulative_result)))]
+                )
+
+                attr(result,"groups") <- attr(individual_result,"groups")
+
+                result
 
         })
 
-        out <- as.data.frame(do.call("rbind",out))
-
-        out <- cbind(outcome_names = lhs,out)
-
-        if(nrow(out)>1){
-                out$win_inherit[-1] <- out$win[-nrow(out)]
-                out$loss_inherit[-1] <- out$loss[-nrow(out)]
-
-                out$win <- out$win - out$win_inherit
-                out$loss <- out$loss - out$loss_inherit
+        groups <- lapply(out,function(x){attr(x,"groups")})
+        groups <- unique(groups)
+        if(length(groups) != 1){
+                groups <- c("Control", "Intervention")
+        } else {
+                groups <- unlist(groups)
         }
+        out <- as.data.frame(do.call("rbind",out))
+        out$outcome_names <- factor(out$outcome_names, levels = 1:length(lhs), labels = lhs)
+
+        out <- by(out,out$effect_size, function(this_out){
+
+                this_out <- this_out[order(this_out$outcome_names),]
+
+                if(nrow(this_out)>1){
+
+                        this_out$win_inherit <- 0
+                        this_out$loss_inherit <- 0
+
+                        this_out$win_inherit[-1] <- this_out$win_cumulative[-nrow(this_out)]
+                        this_out$loss_inherit[-1] <- this_out$loss_cumulative[-nrow(this_out)]
+
+                        this_out$win <- this_out$win_cumulative - this_out$win_inherit
+                        this_out$loss <- this_out$loss_cumulative - this_out$loss_inherit
+                }
+
+                if(any(this_out$win < 0) | any(this_out$loss < 0) ){
+                        this_out$win <- this_out$win_cumulative
+                        this_out$loss <- this_out$loss_cumulative
+                        this_out$win_inherit <- NA
+                        this_out$loss_inherit <- NA
+                        warning("wins and losses do not increase with successive levels. Incremental wins/losses vs. inherited wins/losses could not be calculated")
+                }
 
 
-        overall_row <- out[nrow(out),,drop=FALSE]
+                overall_row <- this_out[nrow(this_out),,drop=FALSE]
 
-        overall_row$outcome_names <- "Overall"
-        overall_row[,c("estimate_individual","lower_individual","upper_individual","pval_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","pval_cumulative")]
-        overall_row$win <- overall_row$win+overall_row$win_inherit
-        overall_row$loss <- overall_row$loss+overall_row$loss_inherit
-        overall_row$loss_inherit <- overall_row$win_inherit <- 0
-
-        out <- rbind(out,overall_row)
+                overall_row$outcome_names <- "Overall"
+                overall_row[,c("estimate_individual","lower_individual","upper_individual","p_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","p_cumulative")]
+                overall_row$win <- overall_row$win+overall_row$win_inherit
+                overall_row$loss <- overall_row$loss+overall_row$loss_inherit
 
 
-        attr(out,"levels") <- levels(data[,main_comparator])
+                if(any(is.na(overall_row$win))){
+                        overall_row$loss <- overall_row$loss_cumulative
+                        overall_row$win <- overall_row$win_cumulative
+                } else {
+                        overall_row$loss_inherit <- overall_row$win_inherit <- 0
+                }
+
+                return(rbind(this_out,overall_row))
+
+        })
+
+        out <- do.call("rbind",out)
+
+        rownames(out) <- NULL
+
+        attr(out,"effect.sizes") <-  unique(out$outcome)
+        attr(out,"groups") <- groups
         class(out) <- c("Winnify",class(out))
 
         out
 
 }
+
 
 #' Visualise prioritised outcome effect estimates
 #'
@@ -265,9 +266,11 @@ winnify <- function(formula, statistic, data, ...){
 #'
 #'
 plot.Winnify <- function(x,
+                         effect_size = NULL,
+
                          label_effect=NULL,
-                         label_control = "control",
-                         label_intervention = "intervention",
+                         label_control = NULL,
+                         label_intervention = NULL,
 
                          pairs_tie=NULL,
                          pairs_tie.color="#222222",
@@ -295,6 +298,22 @@ plot.Winnify <- function(x,
 
                          ...
                     ){
+
+
+        if(is.null(label_control)){
+                label_control <- attr(x, "groups")[1]
+        }
+
+        if(is.null(label_intervention)){
+                label_intervention <- attr(x, "groups")[2]
+        }
+
+        if(is.null(label_control)){
+                label_control <- "Control"
+        }
+        if(is.null(label_intervention)){
+                label_intervention <- "Intervention"
+        }
 
         pairs.fill.reverse_redundant <- !is.null(pairs.fill.reverse)
         if(is.null(pairs.fill)){
@@ -353,26 +372,48 @@ plot.Winnify <- function(x,
         if(is.null(effect_background_loss.fill)) effect_background_loss.fill <-  pairs_loss.fill
         if(is.null(effect_background_win.fill)) effect_background_win.fill <-  pairs_win.fill
 
-        # Load default arguments from attr(x) where possible
 
-        # Some arguments need a default, others can just be left as NULL
+        # Get which effect size to plot
+        if(is.null(effect_size)) effect_size <- 1L
+        if(length(effect_size) != 1) stop("effect_size should be of length 1")
+        if(is.numeric(effect_size)){
+                effect_size <- unique(x$effect_size)[as.integer(effect_size)]
+        } else if(is.character(effect_size)){
+
+                editDistances <- adist(tolower(effect_size),tolower(unique(x$effect_size)),costs = c(insertions = 1, deletions = Inf, substitutions = Inf))
+                editDistances <- c(editDistances)
+                names(editDistances) <- unique(x$effect_size)
+                editDistances <- editDistances[is.finite(editDistances)]
+
+                if(length(editDistances)>2){
+                        stop(sprintf("%s is ambiguous and matches multiple of %s",effect_size,paste(unique(x$effect_size), collapse = ", ")))
+                } else if(length(editDistances)==0){
+                        stop(sprintf("%s does not match any of %s",effect_size,paste(unique(x$effect_size), collapse = ", ")))
+                } else {
+                        effect_size <- names(editDistances)
+                }
+        }
+
+        x <- x[which(x$effect_size==effect_size),]
+
+        # Load default arguments from x where possible
+
+
         if(is.null(label_effect)) {
-                label_effect <- attr(x,"label_effect")
+                label_effect <- effect_size
         }
         if(is.null(label_effect)) {
                 label_effect <-  "Effect Size"
         }
 
         if(is.null(effect_neutral_point)) {
-                effect_neutral_point <- attr(x,"effect_neutral_point")
+                effect_neutral_point <- unique(x$neutral_point)
         }
-
 
         if(is.null(pairs_tie)) {
-                pairs_tie <- attr(x,"pairs_tie")
+                pairs_tie <- unique(x$tie_handling)
         }
-        if(is.na(pairs_tie)) pairs_tie <- NULL
-
+        if(!is.null(pairs_tie)) if(is.na(pairs_tie)) pairs_tie <- NULL
 
         # Create level ranking order variable
         # This is used to help rearrange things later on
@@ -388,20 +429,31 @@ plot.Winnify <- function(x,
         level_label_names_list <- rev(as.list(x$outcome_names))
 
         # Put dataframe in long form to generate proportions of wins/ties/losses etc.
-        df_long <- do.call("rbind",lapply(c("loss_inherit","loss","tie","win","win_inherit"), function(i){
+        df_long <- do.call("rbind",lapply(c("loss_inherit","loss","tie_cumulative","win","win_inherit"), function(i){
                 out <-  x[,c("level","outcome_names",i)]
                 colnames(out)[3] <- "n"
                 out$pairType <- i
                 out
         }))
+        df_long <- df_long[which(!is.na(df_long$n)),]
 
         # Reorder long form dataframe
         df_long <- df_long[order(df_long$level),]
 
         # Make pairtype a factor
         df_long$pairType <- factor(df_long$pairType,
-                                   levels = c("loss_inherit", "loss", "tie", "win", "win_inherit"),
+                                   levels = c("loss_inherit", "loss", "tie_cumulative", "win", "win_inherit"),
                                    labels = c("Inherited losses", "Losses", "Ties", "Wins", "Inherited wins"))
+        df_long$pairType <- droplevels(df_long$pairType)
+
+
+        wlt_pallette <- c(
+                "Inherited losses" = pairs_loss_inherited.fill,
+                "Losses" = pairs_loss.fill,
+                "Ties" = pairs_neutral.fill,
+                "Wins" = pairs_win.fill,
+                "Inherited wins" = pairs_win_inherited.fill
+        )[levels(df_long$pairType)]
 
         # Create a proportion variable for each level
         df_long$p <- df_long$n
@@ -441,13 +493,7 @@ plot.Winnify <- function(x,
                         )
                 ) +
                 ggplot2::scale_fill_manual(
-                        values = c(
-                                pairs_loss_inherited.fill,
-                                pairs_loss.fill,
-                                pairs_neutral.fill,
-                                pairs_win.fill,
-                                pairs_win_inherited.fill
-                        )
+                        values = wlt_pallette
                 ) +
                 ggplot2::guides(
                         fill = ggplot2::guide_legend(

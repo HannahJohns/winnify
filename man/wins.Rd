@@ -7,11 +7,31 @@
 wins(formula, data)
 }
 \arguments{
-\item{formula}{An object of class formula describing the analyses to run. Details of model specification are given in Details}
+\item{formula}{An object of class formula describing the analyses to run. Format for model specification are given in Details}
 
 \item{data}{A data.frame to analyse}
 
-\item{statistic}{A function for performing analysis based on a formula and data. Details are given in Details.}
+\item{effect.size}{A character vector indicating which effect size measures to return. Allows partial matches with abbreviations, e.g. "wr" will match to "Win Ratio"}
+
+\item{iptw.weight}{A numeric vector giving the weights for IPT weighting. See \link[WINS]{win.stat}}
+
+\item{alpha}{A numeric argument giving the significance level. See \link[WINS]{win.stat}}
+
+\item{tau}{A numeric vector argument giving the threshold for minimal clinically important difference. \link[WINS]{win.stat}}
+
+\item{np.direction}{A chacaracer vector indicating if a larger or smaller value is better. See the \code{np_direction} argument in \link[WINS]{win.stat}}
+
+\item{horizon}{A numeric argument giving Time horizon of interest. See \link[WINS]{win.stat}}
+
+\item{win.strategy}{A custom function for determining wins, losses and ties. See \link[WINS]{win.stat}}
+
+\item{pvalue}{A numeric value giving the significance level. See \link[WINS]{win.stat}}
+
+\item{stratum.weight}{A character value giving the method for weighting each stratum. See \link[WINS]{win.stat}}
+
+\item{method}{A character value giving the method for weighting individual participants. See \link[WINS]{win.stat}}
+
+\item{...}{Arguments passed from user defined functions for \code{win.strategy}. See \link[WINS]{win.stat}}
 }
 \description{
 A wrapper function for win.stat() function, allowing it to be used
@@ -51,6 +71,7 @@ These values are inferred from user input.
 
 The left hand side of \code{formula} provides each endpoint as successive terms,
 with the most important endpoint on the left and the least important on the right.
+Values for \code{np.direction} and \code{tau} correspond to each of these terms in this order.
 
 The right hand side of \code{formula} provides grouping variable, ID variable, strata, time and any covariates used for inverse-probability of censoring weighting.
 These are marked using the following functions:

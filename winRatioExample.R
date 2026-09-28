@@ -1,5 +1,9 @@
 rm(list=ls())
 
+source("R/specials.R")
+source("R/wins.R")
+source("R/winnify.R")
+
 library(WINS)
 library(survival)
 
@@ -24,21 +28,128 @@ data <- merge(
         df,
         all.x = T
 )
-#
+
+
 # data$Surv1 <- Surv(data$Y_1,data$Delta_1)
 # data$Surv2 <- Surv(data$Y_2,data$Delta_2)
 # data$Surv3 <- Surv(data$Y_3,data$Delta_3)
 
 data$arm <- factor(data$arm, levels = c("B","A"))
+formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~wins_arm(arm) + wins_stratum(strata) + wins_id(id) + wins_time(time) + Z1 + Z2
+statistic <- wins
 
-g <- function(x){x}
-s <- function(x){x}
-s <- function(x){x}
-id <- function(x){x}
+# wins(formula,data)
+
+x <- winnify(formula,statistic,data)
+
+x
+
+plot(x, effect_size = 3)
+
+
+
+
+{
+        effect_size = NULL
+
+        label_effect=NULL
+        label_control = NULL
+        label_intervention = NULL
+
+        pairs_tie=NULL
+        pairs_tie.color="#222222"
+        pairs_tie.linetype="dashed"
+
+        pairs.fill = NULL
+        pairs.fill.reverse = FALSE
+        pairs_component.width  = 1
+        pairs_overall.width  = 0.6
+
+        effect_scale_log=FALSE
+        effect_neutral_point=NULL
+        effect_neutral_line.color = "#222222"
+
+        effect_background_loss.fill = NULL
+        effect_background_win.fill = NULL
+        effect_background.alpha=0.15
+
+        effect_individual_color = "grey40"
+
+        effect_cumulative.color = "black"
+        effect_cumulative.dodge_width = 0.1
+        effect_cumulative_polygon.height = 0.36
+        effect_cumulative.linetype = "dashed"
+}
+
+
+plot(x, effect_size = "wr")
+plot(x, effect_size = "wod") # this needs fixed, should be able to mark wo
+plot(x, effect_size = "nb")
+
+# tmp <- wins(formula,data)
+#
+# attr(tmp,"groups")
+#
+# attr(tmp,"arguments")$formula
+# str(tmp)
+
+
+
+
+
+
+
+
+
+
+#
+# # formula, data,
+# effect.size = c("wr","wo","nb")
+# iptw.weight=NULL
+# alpha=0.05
+# tau = 0
+# np.direction = "larger"
+# horizon =Inf
+# win.strategy = NULL
+# pvalue = c("two-sided","one-sided")
+# stratum.weight =  c("unstratified","MH-type","wt.stratum1","wt.stratum2","equal")
+# method  = c("unadjusted","ipcw_tau","ipcw","covipcw","iptw","iptw_ipcw","iptw_covipcw")
+#
+#
+#
+
+
+
+
+
+
+
+# main_data <- main_data[,colnames(data_tte)]
+
+
+### IPCW adjustment for dependent censoring
+# res_tte_Cipcw <-
+        win.stat(data = data_tte, ep_type = "tte", arm.name = c("A","B"), tau = 0.1,
+                         Z_t_trt = Z_t_trt, Z_t_con = Z_t_con, priority = c(1:3), alpha = 0.05, digit = 3,
+                         method = "covipcw", stratum.weight = "unstratified", pvalue = "two-sided")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # formula <- Surv1+Surv2+Surv3~group(arm) + id(id) + time(time) + Z1 + Z2
 
-formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~group(arm) + strata(strata) + id(id) + time(time) + Z1 + Z2
 
 np_direction = "np_direction"
 tau = 0
