@@ -54,7 +54,6 @@ winnify <- function(formula, statistic=NULL, data, ...){
 
         lhs <- attr(terms(lhs),"term.labels")
 
-
         # This is potentially something that should be parallelised
         out <- lapply(1:length(lhs), function(i){
                 tmp_data <- data
@@ -118,57 +117,10 @@ winnify <- function(formula, statistic=NULL, data, ...){
         out <- as.data.frame(do.call("rbind",out))
         out$outcome_names <- factor(out$outcome_names, levels = 1:length(lhs), labels = lhs)
 
-        out <- by(out,out$effect_size, function(this_out){
-
-                this_out <- this_out[order(this_out$outcome_names),]
-
-                if(nrow(this_out)>1){
-
-                        this_out$win_inherit <- 0
-                        this_out$loss_inherit <- 0
-
-                        this_out$win_inherit[-1] <- this_out$win_cumulative[-nrow(this_out)]
-                        this_out$loss_inherit[-1] <- this_out$loss_cumulative[-nrow(this_out)]
-
-                        this_out$win <- this_out$win_cumulative - this_out$win_inherit
-                        this_out$loss <- this_out$loss_cumulative - this_out$loss_inherit
-                }
-
-                if(any(this_out$win < 0) | any(this_out$loss < 0) ){
-                        this_out$win <- this_out$win_cumulative
-                        this_out$loss <- this_out$loss_cumulative
-                        this_out$win_inherit <- NA
-                        this_out$loss_inherit <- NA
-                        warning("wins and losses do not increase with successive levels. Incremental wins/losses vs. inherited wins/losses could not be calculated")
-                }
-
-
-                overall_row <- this_out[nrow(this_out),,drop=FALSE]
-
-                overall_row$outcome_names <- "Overall"
-                overall_row[,c("estimate_individual","lower_individual","upper_individual","p_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","p_cumulative")]
-                overall_row$win <- overall_row$win+overall_row$win_inherit
-                overall_row$loss <- overall_row$loss+overall_row$loss_inherit
-
-
-                if(any(is.na(overall_row$win))){
-                        overall_row$loss <- overall_row$loss_cumulative
-                        overall_row$win <- overall_row$win_cumulative
-                } else {
-                        overall_row$loss_inherit <- overall_row$win_inherit <- 0
-                }
-
-                return(rbind(this_out,overall_row))
-
-        })
-
-        out <- do.call("rbind",out)
-
-        rownames(out) <- NULL
+        out <- as_winnify.data.frame(out)
 
         attr(out,"effect.sizes") <-  unique(out$outcome)
         attr(out,"groups") <- groups
-        class(out) <- c("Winnify",class(out))
 
         out
 
@@ -385,8 +337,16 @@ plot.Winnify <- function(x,
                 names(editDistances) <- unique(x$effect_size)
                 editDistances <- editDistances[is.finite(editDistances)]
 
-                if(length(editDistances)>2){
-                        stop(sprintf("%s is ambiguous and matches multiple of %s",effect_size,paste(unique(x$effect_size), collapse = ", ")))
+                if(length(editDistances)>1){
+
+                        if(sum(editDistances==min(editDistances)) > 1){
+                                stop(sprintf("'%s' is ambiguous and matches multiple of %s",effect_size,paste(unique(x$effect_size), collapse = ", ")))
+                        } else {
+                                chosen <- names(editDistances)[editDistances==min(editDistances)]
+                                message(sprintf("'%s' matches multiple of %s. %s assumed.",effect_size,paste(unique(x$effect_size), collapse = ", "),chosen))
+                                effect_size <- chosen
+                        }
+
                 } else if(length(editDistances)==0){
                         stop(sprintf("%s does not match any of %s",effect_size,paste(unique(x$effect_size), collapse = ", ")))
                 } else {
@@ -409,6 +369,7 @@ plot.Winnify <- function(x,
         if(is.null(effect_neutral_point)) {
                 effect_neutral_point <- unique(x$neutral_point)
         }
+
 
         if(is.null(pairs_tie)) {
                 pairs_tie <- unique(x$tie_handling)
@@ -445,7 +406,6 @@ plot.Winnify <- function(x,
                                    levels = c("loss_inherit", "loss", "tie_cumulative", "win", "win_inherit"),
                                    labels = c("Inherited losses", "Losses", "Ties", "Wins", "Inherited wins"))
         df_long$pairType <- droplevels(df_long$pairType)
-
 
         wlt_pallette <- c(
                 "Inherited losses" = pairs_loss_inherited.fill,

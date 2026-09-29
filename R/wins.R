@@ -70,7 +70,6 @@
 #' treatment effect estimate. Use the \code{iptw.weight} argument to do this.
 #'
 #'
-#' @examples
 #'
 #'
 wins <- function(formula, data,
@@ -250,25 +249,48 @@ wins <- function(formula, data,
 
         }
 
-        # Check these against ep_type
         if(length(np.direction)==1){
                 np.direction <- rep(np.direction,length(ep_type))
         } else {
-                stop("wrapper currently only supports np.direction of length 1")
+                if(length(np.direction) < length(ep_type)){
+                        stop("np.direction should be of length 1 or at least of length equal to the number of left hand side terms in formula")
+                } else {
+                      if(!is.null(names(np.direction))){
+                              if(length(setdiff(names(np.direction), attr(lhs,"term.labels")))>0){
+                                      stop(sprintf("If named, names for np.direction should match terms in left hand side of formula: %s",paste(attr(lhs,"term.labels"), collapse=", ")))
+                              }
+                              np.direction <- np.direction[attr(lhs,"term.labels")]
+                      } else {
+                              np.direction <- np.direction[1:length(ep_type)]
+                      }
+                }
         }
+        names(np.direction) <- attr(lhs,"term.labels")
 
         if(length(tau)==1){
                 tau <- rep(tau,length(ep_type))
         } else {
-                stop("wrapper currently only supports tau of length 1")
+                if(length(tau) < length(ep_type)){
+                        stop("tau should be of length 1 or at least of length equal to the number of left hand side terms in formula")
+                } else {
+                        if(!is.null(names(tau))){
+                                if(length(setdiff(names(tau), attr(lhs,"term.labels")))>0){
+                                        stop(sprintf("If named, names for tau should match terms in left hand side of formula: %s",paste(attr(lhs,"term.labels"), collapse=", ")))
+                                }
+                                tau <- tau[attr(lhs,"term.labels")]
+                        } else {
+                                tau <- tau[1:length(ep_type)]
+                        }
+                }
         }
+        names(tau) <- attr(lhs,"term.labels")
 
         priority <- 1:length(ep_type)
 
         # The main dataset shouldn't have repeated measures.
 
         # Summarise main_data by id. The main dataset should only have
-
+        # one unique non-missing value of each outcome, arm and strata
         main_data <- do.call("rbind",by(main_data,main_data[,"id"],function(x){
                 out <- x
                 out <- out[1,]
@@ -324,46 +346,97 @@ wins <- function(formula, data,
                         }
                 }
 
-                # If no time variable, assume covariates are measured at baseline
-                if(is.null(timeVar)){
+                if(length(idVar) == 0 & !is.null(timeVar)){
+                        stop("id variable is required if time-varying covariates are used")
+                }
 
-                        stop("null timeVar isn't written yet")
-
-
-                } else {
-
-                        if(is.null(idVar)){
-                                stop("id variable is required if time-varying covariates are used")
-                        }
-
+                if(length(idVar)>0){
                         covariate_data <- data.frame(
                                 id = eval(parse(text=idVar),envir = data)
                         )
+                } else {
+                        covariate_data <- data.frame(
+                                id = 1:nrow(data)
+                        )
+                }
 
+                if(length(timeVar)>0){
                         covariate_data <- cbind(
                                 covariate_data,
                                 data.frame(
                                         time = eval(parse(text=timeVar),envir = data)
                                 )
                         )
-
-                        for(i in otherVars){
-                                covariate_data[, i] <- eval(parse(text=i),envir = data)
-                        }
-
-                        covariate_data_trt <- covariate_data[
-                                which(
-                                        covariate_data[,"id"] %in% main_data[which(main_data[,"arm"]==levels(main_data[,"arm"])[2]),"id"]
-                                ),
-                        ]
-
-                        covariate_data_con <- covariate_data[
-                                which(
-                                        covariate_data[,"id"] %in% main_data[which(main_data[,"arm"]==levels(main_data[,"arm"])[1]),"id"]
-                                ),
-                        ]
-
+                } else {
+                        covariate_data <- cbind(
+                                covariate_data,
+                                data.frame(
+                                        time = rep(0,nrow(covariate_data))
+                                )
+                        )
                 }
+
+                for(i in otherVars){
+                        covariate_data[, i] <- eval(parse(text=i),envir = data)
+                }
+
+                if(length(timeVar)==0){
+                        # Summarise covariate_data by id. If we're assuming everything is measured at baseline,
+                        # we should only have one unique non-missing value of each outcome, arm and strata
+                        covariate_data <- do.call("rbind",by(covariate_data,covariate_data[,"id"],function(x){
+                                out <- x
+                                out <- out[1,]
+
+                                for(i in colnames(x)){
+                                        out[,i] <- NA
+                                        thisVar <- x[,i]
+                                        thisVar <- unique(thisVar[!is.na(thisVar)])
+
+                                        # This level of granularity of warning is overkill.
+                                        # Just warn that rows got dropped.
+
+                                        # if(length(thisVar)==0){
+                                        #         warning(sprintf("No non-missing value for %s found in %s %s",
+                                        #                         i,
+                                        #                         ifelse(is.null(idVar),"row",idVar),
+                                        #                         out[,"id"]
+                                        #                         )
+                                        #         )
+                                        # }
+
+                                        if(length(thisVar)>1){
+                                                stop(sprintf("Multiple values of %s found in %s %s",
+                                                             i,
+                                                             ifelse(is.null(idVar),"row",idVar),
+                                                             out[,"id"]
+                                                )
+                                                )
+
+                                        }
+                                        out[,i] <- thisVar
+
+                                }
+
+                                if(nrow(out)>1) stop(sprintf("ID %s has multiple outcome values. Is wins_time() missing?",x[,"id"]))
+                                out
+                        }))
+                }
+
+                toDrop <- apply(covariate_data,1,function(x){any(is.na(x))})
+                if(sum(toDrop)>0) warning(sprintf("%d records dropped due to missing covariates",sum(toDrop)))
+                covariate_data <- covariate_data[which(!toDrop),]
+
+                covariate_data_trt <- covariate_data[
+                        which(
+                                covariate_data[,"id"] %in% main_data[which(main_data[,"arm"]==levels(main_data[,"arm"])[2]),"id"]
+                        ),
+                ]
+
+                covariate_data_con <- covariate_data[
+                        which(
+                                covariate_data[,"id"] %in% main_data[which(main_data[,"arm"]==levels(main_data[,"arm"])[1]),"id"]
+                        ),
+                ]
 
         } else {
                 if(is.null(method)){
@@ -420,26 +493,43 @@ wins <- function(formula, data,
 
         }
 
-        out <- win.stat(
-                data=main_data,
-                ep_type=ep_type,
-                Z_t_trt = covariate_data_trt,
-                Z_t_con = covariate_data_con,
-                iptw.weight = iptw.weight,
-                arm.name = rev(levels(main_data[,"arm"])),
-                priority=priority,
-                alpha = alpha,
-                digit=10 ,     # Does nothing, completely arbitrary when summary.print = F
-                tau=tau,
-                np_direction = np.direction,
-                horizon = horizon,
-                win.strategy = win.strategy,
-                pvalue = pvalue,
-                stratum.weight = stratum.weight,
-                method  = method,
-                summary.print = FALSE,
-                ...
-        )
+
+        # If length(ep_type)==1, win.stat() uses cat() to print a message
+        # that lets the user know that ep_type is the outcome type for all
+        # variables. This triggers even when there is only a single variable
+        # and is impossible to silence.
+
+        # This not great workaround: We intercept this and all other messages
+        # returned from win.stat() and if they're not this bugged behaviour
+        # we print it using message() so that other people can suppress
+        # if they want to.
+        messages <- capture.output({
+                out <- win.stat(
+                        data=main_data,
+                        ep_type=ep_type,
+                        Z_t_trt = covariate_data_trt,
+                        Z_t_con = covariate_data_con,
+                        iptw.weight = iptw.weight,
+                        arm.name = rev(levels(main_data[,"arm"])),
+                        priority=priority,
+                        alpha = alpha,
+                        digit=10 ,     # Does nothing, completely arbitrary when summary.print = F
+                        tau=tau,
+                        np_direction = np.direction,
+                        horizon = horizon,
+                        win.strategy = win.strategy,
+                        pvalue = pvalue,
+                        stratum.weight = stratum.weight,
+                        method  = method,
+                        summary.print = FALSE,
+                        ...
+                )
+        })
+
+        for(this_message in messages){
+                if(grepl("The outcome type for all the endpoints:",this_message) & length(ep_type)==1) next
+                message(this_message)
+        }
 
         # Format results into a table to report back
 
@@ -452,7 +542,7 @@ wins <- function(formula, data,
         estimates$effect_size <- gsub("_"," ",estimates$effect_size)
         colnames(estimates)[-1] <- c("estimate","lower","upper")
 
-        estimates$p <- c(out$p_value)
+        estimates$pval <- c(out$p_value)
 
         if(length(strataVar)==0){
                 estimates$win <- out$Win_prop$P_trt

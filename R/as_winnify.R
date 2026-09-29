@@ -113,106 +113,178 @@
 #'
 #'
 as_winnify.data.frame <- function(x,
+                                  effect_size = NULL,
+                                  neutral_point=NULL,
+                                  tie_handling=NULL,
                                   outcome_names = "outcome_names",
-                                  win_inherit="win_inherit",
-                                  win="win",
-                                  tie="tie",
-                                  loss="loss",
-                                  loss_inherit="loss_inherit",
+                                  win_cumulative="win_cumulative",
+                                  tie_cumulative="tie_cumulative",
+                                  loss_cumulative="loss_cumulative",
                                   estimate_cumulative ="estimate_cumulative",
                                   lower_cumulative="lower_cumulative",
-                                  upper_cumulative ="upper_cumulative ",
+                                  upper_cumulative ="upper_cumulative",
                                   pval_cumulative ="pval_cumulative",
                                   estimate_individual ="estimate_individual",
                                   lower_individual ="lower_individual",
                                   upper_individual ="upper_individual",
                                   pval_individual ="pval_individual",
-                                  neutral_point=NULL, tie_handling=NULL, effect_name=NULL,
                                   ignore_missing = FALSE,
                                   ...
                                   )
 {
 
-        # Include some checks to ensure that the argument inserted is a dataframe and that the necessary variables
-        # are included in the dataframe and stop and report an error message if they are missing
+        # list columns cause things to break - fix this here.
+        for(i in 1:ncol(x)) x[,i] <- unlist(x[,i])
 
-        target_names <- c(outcome_names="outcome_names",
+        target_variables <- list(
+                effect_size = effect_size,
+                neutral_point =neutral_point,
+                tie_handling= tie_handling,
+                outcome_names=outcome_names,
+                win_cumulative=win_cumulative,
+                tie_cumulative=tie_cumulative,
+                loss_cumulative=loss_cumulative,
 
-                          win_inherit="win_inherit",
-                          win="win",
-                          tie="tie",
-                          loss="loss",
-                          loss_inherit="loss_inherit",
+                estimate_cumulative=estimate_cumulative,
+                lower_cumulative=lower_cumulative,
+                upper_cumulative=upper_cumulative,
+                pval_cumulative=pval_cumulative,
 
-                          estimate_cumulative="estimate_cumulative",
-                          lower_cumulative="lower_cumulative",
-                          upper_cumulative="upper_cumulative",
-                          pval_cumulative ="pval_cumulative",
-
-                          estimate_individual="estimate_individual",
-                          lower_individual="lower_individual",
-                          upper_individual="upper_individual",
-                          pval_individual="pval_individual"
-                          )
-
-        names(target_names) <- c(outcome_names,
-                                 win_inherit, win, tie, loss, loss_inherit,
-                                 estimate_cumulative, lower_cumulative, upper_cumulative,pval_cumulative,
-                                 estimate_individual, lower_individual, upper_individual,pval_individual
-                                 )
-
-        if(!all(names(target_names) %in% names(x))) {
-
-                unfound_values <- setdiff(names(target_names), colnames(x))
-
-                if(ignore_missing){
-
-                        for(i in unfound_values) x[,i] <- NA
-
-                        unfound_values <- paste(unfound_values,collapse=", ")
-                        warning(sprintf("Missing variables for: %s. Check input data frame contains these variables.",unfound_values))
+                estimate_individual=estimate_individual,
+                lower_individual=lower_individual,
+                upper_individual=upper_individual,
+                pval_individual=pval_individual
+        )
 
 
+
+        for(i in 1:length(target_variables)){
+
+                this_target  <- names(target_variables)[i]
+                this_location <- target_variables[[i]]
+
+                if(this_target == "effect_size"){
+                        # NOTE: This will cause problems if effect size is never
+                        # not the first item in the list.
+                        if(is.null(this_location)){
+                                if("effect_size" %in% colnames(x)){
+                                        out <- x[,"effect_size",drop=FALSE]
+                                } else {
+                                        out <- data.frame(effect_size = rep("Effect Size",nrow(x)))
+                                }
+                        } else {
+                                if(this_location %in% colnames(x)){
+                                        out <- x[,this_location,drop=FALSE]
+                                } else {
+                                        out <- data.frame(effect_size = rep(this_location,nrow(x)))
+                                }
+                        }
+                } else if(this_target == "neutral_point"){
+                        if(is.null(this_location)){
+                                if("neutral_point" %in% colnames(x)){
+                                        out <- cbind(out,neutral_point = x[,"neutral_point"])
+                                } else {
+                                        # Do nothing - plot.Winninfy() looks for null values to know not to
+                                        # print the direction of effect
+                                }
+                        } else {
+                                if(this_location %in% colnames(x)){
+                                        out <- cbind(out,neutral_point = x[,this_location])
+                                } else {
+                                        out <- cbind(out,data.frame(neutral_point = rep(this_location,nrow(x))))
+                                }
+                        }
+                } else if(this_target == "tie_handling"){
+                        if(is.null(this_location)){
+                                if("tie_handling" %in% colnames(x)){
+                                        out <- cbind(out,tie_handling = x[,"tie_handling"])
+                                } else {
+                                        # Do nothing - plot.Winninfy() looks for null values to know not to
+                                        # print the tie splitting line
+                                }
+                        } else {
+                                if(this_location %in% colnames(x)){
+                                        out <- cbind(out,tie_handling = x[,this_location])
+                                } else {
+                                        out <- cbind(out,data.frame(tie_handling = rep(this_location,nrow(x))))
+                                }
+                        }
                 } else {
+                        if(!is.null(this_location)){
 
-                        unfound_values <- paste(unfound_values,collapse=", ")
-                        stop(sprintf("Missing variables for: %s. Check input data frame contains these variables.",unfound_values))
+                                if(this_location %in% colnames(x)){
+                                        out <- cbind(out,x[,this_location])
+                                        colnames(out)[ncol(out)] <- this_target
+                                } else {
+                                        if(ignore_missing){
+                                                warning(sprintf("Missing variable %s",this_location))
+                                                out <- cbind(out,rep(NA,nrow(x)))
+                                                colnames(out)[ncol(out)] <- this_target
+                                        } else {
+                                                stop(sprintf("Missing variable %s",this_location))
+                                        }
+
+                                }
+                        } else {
+                                out <- cbind(out,rep(NA,nrow(x)))
+                                colnames(out)[ncol(out)] <- this_target
+                        }
                 }
-
-
         }
 
 
-        # Select only necessary columns (in case extra columns in data) and reorder columns so that they are in correct order for the renaming function
-        out <- x[,c(outcome_names,
-                    win_inherit, win, tie, loss, loss_inherit,
-                    estimate_cumulative, lower_cumulative, upper_cumulative,pval_cumulative,
-                    estimate_individual, lower_individual, upper_individual,pval_individual
-                    )
-                 ]
+        out <- by(out,out$effect_size, function(this_out){
 
-        # Rename the columns to the necessary names for Winnify objects
-        colnames(out) <- target_names
+                this_out <<- this_out
+
+                this_out <- this_out[order(this_out$outcome_names),]
+
+                if(nrow(this_out)>1){
+
+                        this_out$win_inherit <- 0
+                        this_out$loss_inherit <- 0
+
+                        this_out$win_inherit[-1] <- this_out$win_cumulative[-nrow(this_out)]
+                        this_out$loss_inherit[-1] <- this_out$loss_cumulative[-nrow(this_out)]
+
+                        this_out$win <- this_out$win_cumulative - this_out$win_inherit
+                        this_out$loss <- this_out$loss_cumulative - this_out$loss_inherit
+                }
+
+                if(any(this_out$win < 0) | any(this_out$loss < 0) ){
+                        this_out$win <- this_out$win_cumulative
+                        this_out$loss <- this_out$loss_cumulative
+                        this_out$win_inherit <- NA
+                        this_out$loss_inherit <- NA
+                        warning("wins and losses do not increase with successive levels. Incremental wins/losses vs. inherited wins/losses could not be calculated")
+                }
 
 
-        overall_row <- out[nrow(out),,drop=FALSE]
+                overall_row <- this_out[nrow(this_out),,drop=FALSE]
 
-        overall_row$outcome_names <- "Overall"
-        overall_row[,c("estimate_individual","lower_individual","upper_individual","pval_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","pval_cumulative")]
-        overall_row$win <- overall_row$win+overall_row$win_inherit
-        overall_row$loss <- overall_row$loss+overall_row$loss_inherit
-        overall_row$loss_inherit <- overall_row$win_inherit <- 0
+                overall_row$outcome_names <- "Overall"
+                overall_row[,c("estimate_individual","lower_individual","upper_individual","pval_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","pval_cumulative")]
+                overall_row$win <- overall_row$win+overall_row$win_inherit
+                overall_row$loss <- overall_row$loss+overall_row$loss_inherit
 
-        out <- rbind(out,overall_row)
 
-        attr(out,"tie_handling") <- tie_handling
-        attr(out,"neutral_point") <- neutral_point
-        attr(out,"effect_name") <- effect_name
+                if(any(is.na(overall_row$win))){
+                        overall_row$loss <- overall_row$loss_cumulative
+                        overall_row$win <- overall_row$win_cumulative
+                } else {
+                        overall_row$loss_inherit <- overall_row$win_inherit <- 0
+                }
 
+                return(rbind(this_out,overall_row))
+        })
+
+        out <- do.call("rbind",out)
+        rownames(out) <- NULL
         class(out) <- c("Winnify",class(out))
 
         out
 }
+
 
 
 
@@ -262,6 +334,9 @@ as_winnify.data.frame <- function(x,
 #' plot(result)
 #'
 as_winnify.WinRatio <- function(x,...){
+
+        stop("this needs reworked")
+
         # Extract data and create dataframe
         wr_output_list <- lapply(1:length(x$call$outcomes), function(i) {
 

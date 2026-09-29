@@ -2,6 +2,7 @@ rm(list=ls())
 
 source("R/specials.R")
 source("R/wins.R")
+source("R/as_winnify.R")
 source("R/winnify.R")
 
 library(WINS)
@@ -35,19 +36,27 @@ data <- merge(
 # data$Surv3 <- Surv(data$Y_3,data$Delta_3)
 
 data$arm <- factor(data$arm, levels = c("B","A"))
+
 formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~wins_arm(arm) + wins_stratum(strata) + wins_id(id) + wins_time(time) + Z1 + Z2
+
+# formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~wins_arm(arm) + wins_stratum(strata) +  Z1 + Z2
+
+source("R/wins.R")
+wins(formula,data)
+
 statistic <- wins
 
-# wins(formula,data)
+attr(tmp,"arguments")$tau
 
-x <- winnify(formula,statistic,data)
+x <- winnify(formula,statistic,data, tau=c(1,0.5,0))
 
-x
-
-plot(x, effect_size = 3)
+plot(x, effect_size="wr")
 
 
 
+
+source("R/winnify.R")
+plot.Winnify(x, effect_size = "wr")
 
 {
         effect_size = NULL

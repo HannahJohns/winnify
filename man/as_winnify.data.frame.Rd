@@ -24,23 +24,12 @@ ignore_missing = FALSE
 )
 }
 \arguments{
+\item{neutral_point}{A number specifying the effect size that corresponds to no effect.}
+
+\item{tie_handling}{A string specifying how ties should be treated.}
+
 \item{outcome_names}{A string indicating the column of \code{data} containing the names
 of the outcomes.}
-
-\item{win_inherit}{A string indicating the column of \code{data} containing the
-inherited wins for each outcome.}
-
-\item{win}{A string indicating the column of \code{data} containing the wins for
-each outcome.}
-
-\item{tie}{A string indicating the column of \code{data} containing the ties for
-each outcome.}
-
-\item{loss}{A string indicating the column of \code{data} containing the losses for
-each outcome.}
-
-\item{loss_inherit}{A string indicating the column of \code{data} containing the
-inherited losses for each outcome.}
 
 \item{estimate_cumulative}{A string indicating the column of \code{data} containing
 the cumulative effect size for each outcome when considered ranked.}
@@ -64,15 +53,24 @@ each outcome when considered ranked.}
 the p value for estimated cumulative effect size for
 each outcome when considered independently (not ranked).}
 
-\item{neutral_point}{A number specifying the effect size that corresponds to no effect.}
-
-\item{tie_handling}{A string specifying how ties should be treated.}
-
-\item{effect_name}{A string specifying type of analysis to appear in the forest plot label.}
-
 \item{ignore_missing}{A logical indicating if missing columns are allowed. If \code{TRUE}, missing columns are replaced with \code{NA}}
 
 \item{data}{A data frame containing analysis results}
+
+\item{win_inherit}{A string indicating the column of \code{data} containing the
+inherited wins for each outcome.}
+
+\item{win}{A string indicating the column of \code{data} containing the wins for
+each outcome.}
+
+\item{tie}{A string indicating the column of \code{data} containing the ties for
+each outcome.}
+
+\item{loss}{A string indicating the column of \code{data} containing the losses for
+each outcome.}
+
+\item{loss_inherit}{A string indicating the column of \code{data} containing the
+inherited losses for each outcome.}
 
 \item{ci_lower_individual}{A string indicating the column of \code{data} containing
 the lower boundary of the confidence interval for the effect size for each outcome
@@ -81,6 +79,8 @@ when considered independently (not ranked).}
 \item{ci_upper_individual}{A string indicating the column of \code{data} containing
 the upper boundary of the confidence interval for the effect size for each outcome
 when considered independently (not ranked).}
+
+\item{effect_name}{A string specifying type of analysis to appear in the forest plot label.}
 }
 \description{
 Convert a data frame to a Winnify object
