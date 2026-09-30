@@ -1,4 +1,7 @@
-#' Convert other objects to a winnify object
+#' Convert other objects to a Winnify object
+#' 
+#' @description Generic function for converting objects to \link[=winnify]{Winnify} objects 
+#' 
 #' @aliases as_winnify
 #'
 #' @usage as_winnify(x, ...)
@@ -10,7 +13,11 @@
 #' \item data.frame objects from base R. See \code{\link{as_winnify.data.frame}} for details.
 #' \item WinRatio objects returned by the \code{\link[WinRatio]{winratio}} function. See \code{\link{as_winnify.WinRatio}} for details.
 #' }
-"as_winnify"
+#' 
+#' @returns A \code{Winnify} object.
+as_winnify <- function(x,...){
+  UseMethod("as_winnify")
+}
 
 #' Convert a data frame to a Winnify object
 #'
@@ -39,75 +46,77 @@
 #' @param data A data frame containing analysis results
 #' @param outcome_names A string indicating the column of \code{data} containing the names
 #' of the outcomes.
-#' @param win_inherit A string indicating the column of \code{data} containing the
-#' inherited wins for each outcome.
-#' @param win A string indicating the column of \code{data} containing the wins for
-#' each outcome.
-#' @param tie A string indicating the column of \code{data} containing the ties for
-#' each outcome.
-#' @param loss A string indicating the column of \code{data} containing the losses for
-#' each outcome.
-#' @param loss_inherit A string indicating the column of \code{data} containing the
-#' inherited losses for each outcome.
-#'
-#' @param estimate_cumulative A string indicating the column of \code{data} containing
-#' the cumulative effect size for each outcome when considered ranked.
-#' @param lower_individual A string indicating the column of \code{data} containing
-#' the lower boundary of the confidence interval for the cumulative effect size for
-#' each outcome when considered ranked.
+#' 
+#' @param effect_name A string indicating the the column of \code{data} containing the effect size name, or a string specifying this directly. See Details.
+#' @param neutral_point A string indicating the the column of \code{data} containing the neutral value, or a number specifying this directly. See Details. 
+#' @param tie_handling A string indicating the the column of \code{data} containing how ties are handled, or a string specifying this directly. See Details.
+#' @param win_cumulative A string indicating the column of \code{data} containing the total wins as each outcome is added.
+#' @param tie_cumulative A string indicating the column of \code{data} containing the total ties as each outcome is added.
+#' @param loss_cumulative A string indicating the column of \code{data} containing the total losses as each outcome is added. 
+#' @param estimate_cumulative A string indicating the column of \code{data} containing the cumulative effect size as each outcome is added.
+#' @param lower_cumulative A string indicating the column of \code{data} containing the lower boundary of the confidence interval for the cumulative effect as each outcome is added.
+#' @param upper_cumulative A string indicating the column of \code{data} containing the upper boundary of the confidence interval for the cumulative effect size as each outcome is added.
+#' @param pval_cumulative A string indicating the column of \code{data} containing the p value for estimated cumulative effect size as each outcome is added.
+#' @param estimate_individual A string indicating the column of \code{data} containing the effect size for each outcome when considered independently.
+#' @param lower_individual A string indicating the column of \code{data} containing the lower boundary of the confidence interval for the effect size for each outcome
+#' when considered independently.
 #' @param upper_individual A string indicating the column of \code{data} containing
-#' the upper boundary of the confidence interval for the cumulative effect size for
-#' each outcome when considered ranked.
-#' @param pval_cumulative A string indicating the column of \code{data} containing
-#' the p value for estimated cumulative effect size for
-#' each outcome when considered ranked.
-#'
-#' @param estimate_individual A string indicating the column of \code{data} containing
-#' the effect size for each outcome when considered independently (not ranked).
-#' @param ci_lower_individual A string indicating the column of \code{data} containing
-#' the lower boundary of the confidence interval for the effect size for each outcome
-#' when considered independently (not ranked).
-#' @param ci_upper_individual A string indicating the column of \code{data} containing
 #' the upper boundary of the confidence interval for the effect size for each outcome
-#' when considered independently (not ranked).
+#' when considered independently.
 #' @param pval_individual A string indicating the column of \code{data} containing
 #' the p value for estimated cumulative effect size for
-#' each outcome when considered independently (not ranked).
+#' each outcome when considered independently.
+#' 
+#' @param ignore_missing A logical indicating if behaviour of columns of data are not found. If \code{TRUE}, columns with no match in \code{data} are replaced with \code{NA} and a message is returned indicating this.
 #'
-#' @param effect_name A string specifying type of analysis to appear in the forest plot label.
-#' @param neutral_point A number specifying the effect size that corresponds to no effect.
-#' @param tie_handling A string specifying how ties should be treated.
-#' @param ignore_missing A logical indicating if missing columns are allowed. If \code{TRUE}, missing columns are replaced with \code{NA}
-#'
+#' @details
+#' 
+#' \code{data} is assumed to have rows ordered from most important to least important.
+#' 
+#' \code{tie_handling} is used to specify the default option for the \code{pairs_tie} argument in \link{plot.Winnify}. See this function's help file for more detail.
+#' 
+#' Arguments \code{effect_name}, \code{neutral_point} and \code{tie_handling} will first look for a column in \code{data} that matches the value supplied.
+#' If no matching column is found, the input is treated as a constant and is added to the output.
+#' By default, \code{effect_name} looks for a column "effect_size", and if this column is not found then it will use "Effect size" as a constant label for the
+#' output. By default, \code{neutral_point} and \code{tie_handling} are omitted. 
+#' 
+#' If \code{NULL} is supplied a string arguments, then that column is skipped and NA values are returned where relevant with no message.
+#' This is more explicit than setting \code{ignore_missing} to be \code{TRUE} and is recommended if columns are missing in \code{data}. 
+#' 
+#' 
+#' @returns A \code{Winnify} object. See \link{winnify} for details.
+#' 
 #' @examples
 #'
-#' data <- data.frame(outcome_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
-#'                    win_inherit=c(0,15,25,33),
-#'                    win=c(15,10,8,15),
-#'                    tie=c(80,60,40,15),
-#'                    loss=c(5,10,12,10),
-#'                    loss_inherit=c(0,5,15,27),
+#' data <- data.frame(endpoint=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
+#'                    wins = c(15,25,33,48),
+#'                    ties =c(80,60,40,15),
+#'                    losses =c(5,15,27,37),
 #'                    win_ratio=c(3,1,0.67,1.5),
 #'                    ci_lower=c(2.6,0.6,0.27,1.1),
 #'                    ci_upper=c(3.4,1.4,1.07,1.9),
 #'                    win_ratio_cum=c(3,1.67,1.22,1.30),
 #'                    ci_lower_cum=c(2.6,1.32,0.92,1.10),
-#'                    ci_upper_cum=c(3.4,2.02,1.52,1.50),
-#'                    pval_cum=NA,
-#'                    pval=NA
+#'                    ci_upper_cum=c(3.4,2.02,1.52,1.50)
 #' )
 #'
 #'
 #' result <- as_winnify(data,
+#'                      effect_size = "Win Ratio",
+#'                      neutral_point = 1,
+#'                      tie_handling = "drop", 
+#'                      outcome_names = "endpoint", 
+#'                      win_cumulative = "wins",
+#'                      tie_cumulative = "ties",
+#'                      loss_cumulative = "losses",
 #'                      estimate_cumulative = "win_ratio_cum",
 #'                      lower_cumulative="ci_lower_cum",
 #'                      upper_cumulative ="ci_upper_cum",
 #'                      estimate_individual = "win_ratio",
 #'                      lower_individual="ci_lower",
 #'                      upper_individual ="ci_upper",
-#'                      pval_cumulative = "pval_cum",
-#'                      pval_individual = "pval",
-#'                      neutral_point = 1
+#'                      pval_cumulative = NULL,
+#'                      pval_individual = NULL
 #' )
 #' plot(result)
 #'
@@ -155,8 +164,6 @@ as_winnify.data.frame <- function(x,
                 upper_individual=upper_individual,
                 pval_individual=pval_individual
         )
-
-
 
         for(i in 1:length(target_variables)){
 
@@ -259,7 +266,6 @@ as_winnify.data.frame <- function(x,
                         warning("wins and losses do not increase with successive levels. Incremental wins/losses vs. inherited wins/losses could not be calculated")
                 }
 
-
                 overall_row <- this_out[nrow(this_out),,drop=FALSE]
 
                 overall_row$outcome_names <- "Overall"
@@ -287,7 +293,6 @@ as_winnify.data.frame <- function(x,
 
 
 
-
 #' Visualise Win Ratio effect estimates from the winratio function
 #'
 #' Convenience function for visualising Win Ratio as estimated by \code{\link[WinRatio]{winratio}}
@@ -300,19 +305,11 @@ as_winnify.data.frame <- function(x,
 #'
 #' @param x An object of class \code{WinRatio} containing the output from \code{winratio()}
 #'
-#' @return
-#' A \code{patchwork} object containing two plots (left and right):
-#' \describe{
-#' \item{}{The left plot shows the proportions of inherited
-#' wins/wins/ties/losses/inherited losses for each outcome when ranked and overall.}
-#' \item{}{The right plot shows the measured effect (e.g., win ratio) at both a
-#' cumulatively ranked outcome level (with overall) and for each outcome independently.}
-#' }
-#'
+#' @returns A \code{Winnify} object. See \link{winnify} for details. 
+#' 
 #' @examples
-#' library(WinRatio)
 #'
-#' # winratio function requires additional inputs
+#' # winratio function requires additional inputs than what's available in this dataset.
 #'
 #' # Add an id variable to dataset
 #' remapcap$id <- seq_len(nrow(remapcap))
@@ -324,7 +321,7 @@ as_winnify.data.frame <- function(x,
 #' remapcap$group <- ifelse(remapcap$group == "uc", "Control", "Treatment")
 #'
 #' # Run winratio function on dataset
-#' wr <- winratio(id = "id", trt = "group", active = "Treatment",
+#' wr <- WinRatio::winratio(id = "id", trt = "group", active = "Treatment",
 #'                 outcomes = list("Death" = c("deathStatus", "s", "deathTime"),
 #'                 "Time at home" = c("homeTime", "c", "<")),
 #'                 fu = "deathTime", data = remapcap)
@@ -334,8 +331,6 @@ as_winnify.data.frame <- function(x,
 #' plot(result)
 #'
 as_winnify.WinRatio <- function(x,...){
-
-        stop("this needs reworked")
 
         # Extract data and create dataframe
         wr_output_list <- lapply(1:length(x$call$outcomes), function(i) {
@@ -350,9 +345,9 @@ as_winnify.WinRatio <- function(x,...){
                                                         fu = x$call$fu, data = x$call$data)
 
                 data.frame(outcome_names=names(tmp_wr_cumulative$call$outcome[i]),
-                           win_inherit=(tmp_wr_cumulative$total.wins-tmp_wr_cumulative$wins[i]), win=tmp_wr_cumulative$wins[i],
-                           tie=tmp_wr_cumulative$total.ties,
-                           loss=tmp_wr_cumulative$loss[i], loss_inherit=(tmp_wr_cumulative$total.loss-tmp_wr_cumulative$loss[i]),
+                           win_cumulative=tmp_wr_cumulative$total.wins,
+                           tie_cumulative=tmp_wr_cumulative$total.ties,
+                           loss_cumulative=tmp_wr_cumulative$total.loss,
                            estimate_cumulative =tmp_wr_cumulative$wr,
                            lower_cumulative=tmp_wr_cumulative$wr.lower, upper_cumulative =tmp_wr_cumulative$wr.upper,
                            pval_cumulative =tmp_wr_cumulative$p.value,
@@ -365,21 +360,7 @@ as_winnify.WinRatio <- function(x,...){
 
         out <- do.call("rbind",wr_output_list)
 
-        overall_row <- out[nrow(out),,drop=FALSE]
-
-        overall_row$outcome_names <- "Overall"
-        overall_row[,c("estimate_individual","lower_individual","upper_individual","pval_individual")] <- overall_row[,c("estimate_cumulative","lower_cumulative","upper_cumulative","pval_cumulative")]
-        overall_row$win <- overall_row$win+overall_row$win_inherit
-        overall_row$loss <- overall_row$loss+overall_row$loss_inherit
-        overall_row$loss_inherit <- overall_row$win_inherit <- 0
-
-        out <- rbind(out,overall_row)
-
-        attr(out,"tie_handling") <- "drop"
-        attr(out,"neutral_point") <- 1
-        attr(out,"effect_name") <- "Win Ratio"
-
-        class(out) <- c("Winnify",class(out))
+        out <-as_winnify.data.frame(out,effect_size = "Win Ratio",neutral_point = 1,tie_handling = "drop")
 
         out
 

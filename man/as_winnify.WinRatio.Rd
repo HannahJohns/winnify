@@ -10,22 +10,15 @@ as_winnify(x)
 \item{x}{An object of class \code{WinRatio} containing the output from \code{winratio()}}
 }
 \value{
-A \code{patchwork} object containing two plots (left and right):
-\describe{
-\item{}{The left plot shows the proportions of inherited
-wins/wins/ties/losses/inherited losses for each outcome when ranked and overall.}
-\item{}{The right plot shows the measured effect (e.g., win ratio) at both a
-cumulatively ranked outcome level (with overall) and for each outcome independently.}
-}
+A \code{Winnify} object. See \link{winnify} for details.
 }
 \description{
 Convenience function for visualising Win Ratio as estimated by \code{\link[WinRatio]{winratio}}
 from the \code{WinRatio} package.
 }
 \examples{
-library(WinRatio)
 
-# winratio function requires additional inputs
+# winratio function requires additional inputs than what's available in this dataset.
 
 # Add an id variable to dataset
 remapcap$id <- seq_len(nrow(remapcap))
@@ -37,7 +30,7 @@ remapcap$homeTime <- (remapcap$deathTime-remapcap$dischargeTime)
 remapcap$group <- ifelse(remapcap$group == "uc", "Control", "Treatment")
 
 # Run winratio function on dataset
-wr <- winratio(id = "id", trt = "group", active = "Treatment",
+wr <- WinRatio::winratio(id = "id", trt = "group", active = "Treatment",
                 outcomes = list("Death" = c("deathStatus", "s", "deathTime"),
                 "Time at home" = c("homeTime", "c", "<")),
                 fu = "deathTime", data = remapcap)

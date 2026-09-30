@@ -31,6 +31,8 @@ Imports:
 Suggests:
     genodds,
     pim,
+    testthat (>= 3.0.0),
     WinRatio
 Config/roxygen2/version: 8.0.0
 RoxygenNote: 7.3.2
+Config/testthat/edition: 3

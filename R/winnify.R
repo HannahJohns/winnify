@@ -1,9 +1,23 @@
-as_winnify <- function (x, ...) UseMethod("as_winnify", x)
-#' Enables Prioritised Outcomes analysis using rank-based statistical methods
+#' Better Prioritised Outcomes Analyses 
 #'
-#' @description Wrapper function facilitating use of other R analysis functions
-#' under the Generalised Pairwise Comparisons framework
-#'
+#' @description 
+#' winnify is a wrapper function that facilitates improved reporting of 
+#' Generalised Pairwise Comparisons with Prioritised Outcomes.
+#' It takes a formula that specifies one or more outcome variables
+#' and then iteratively executes an analysis function to estimate
+#' a statistic based on the first outcome, then the first and second outcome,
+#' and so on. It also estimates the statistic on each outcome independently
+#' of all other outcomes to provide additional context about the 
+#' 
+#' In doing so, it provides convenient estimates of the statistic
+#' as successively less important outcomes are added to the analysis.
+#' This enables improved visualisation of results across outcomes and
+#' more transparent reporting. 
+#' 
+#' It also facilitates the use of rank-based statistical functions
+#' for Generalised Pairwise Comparisons with Prioritised Outcomes
+#' when prefernces among pairwise comparisons are fully transitive.  
+#'  
 #' @usage winnify(formula, statistic, data)
 #'
 #' @param formula An object of class formula describing the analyses to run. Details of model specification are given in Details
@@ -12,16 +26,25 @@ as_winnify <- function (x, ...) UseMethod("as_winnify", x)
 #'
 #' @details
 #' The left hand side of the formula should list all outcomes to consider, in order of decreasing importance from the left.
-#' The right hand side of the formula lists all independent variables. The first term on the left hand side indicates the
-#' primary variable of interest, which should contain exactly two groups.
-#'
-#' statistic should be a function that takes a formula and a dataset and should return a named vector of length 4 containing
-#' estimate, lower, upper and pval
-#'
-#' NOTE: wins/losses/ties in the summary are not adjusted for covariates, even if \code{statistic} returns adjusted values.
-#'
+#' The right hand side of the formula lists all independent variables. The following special functions are used to indicate
+#' fields of interest:
+#' 
+#' \itemize{
+#' \item \code{w_arm(x)} - marks \code{x} as being the grouping variable. Is mandatory in the formula.
+#' \item \code{w_id(x)} - marks \code{x} as being the ID variable
+#' \item \code{w_stratum(x)} - marks \code{x} as being the stratum variable
+#' \item \code{w_time(x)} - marks \code{x} as being the time variable for time-varying covariates.
+#' }
+#' 
+#' \code{w_arm(x)} is needed for both the supplied \link{wins} and \link{ranks} functions,
+#' while \code{w_id(x)}, \code{w_stratum(x)} and \code{w_time(x)} are only accepted by \link{wins}. 
+#' 
+#' @returns This needs written still
+#' 
 #' @examples
 #'
+#' # This needs written still
+#' 
 #' statistic <- function(formula,data){
 #'
 #'         fit <- genodds::genodds(response = data[,as.character(formula)[2]],

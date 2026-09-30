@@ -24,96 +24,96 @@ ignore_missing = FALSE
 )
 }
 \arguments{
-\item{neutral_point}{A number specifying the effect size that corresponds to no effect.}
+\item{neutral_point}{A string indicating the the column of \code{data} containing the neutral value, or a number specifying this directly. See Details.}
 
-\item{tie_handling}{A string specifying how ties should be treated.}
+\item{tie_handling}{A string indicating the the column of \code{data} containing how ties are handled, or a string specifying this directly. See Details.}
 
 \item{outcome_names}{A string indicating the column of \code{data} containing the names
 of the outcomes.}
 
-\item{estimate_cumulative}{A string indicating the column of \code{data} containing
-the cumulative effect size for each outcome when considered ranked.}
+\item{win_cumulative}{A string indicating the column of \code{data} containing the total wins as each outcome is added.}
 
-\item{pval_cumulative}{A string indicating the column of \code{data} containing
-the p value for estimated cumulative effect size for
-each outcome when considered ranked.}
+\item{tie_cumulative}{A string indicating the column of \code{data} containing the total ties as each outcome is added.}
 
-\item{estimate_individual}{A string indicating the column of \code{data} containing
-the effect size for each outcome when considered independently (not ranked).}
+\item{loss_cumulative}{A string indicating the column of \code{data} containing the total losses as each outcome is added.}
 
-\item{lower_individual}{A string indicating the column of \code{data} containing
-the lower boundary of the confidence interval for the cumulative effect size for
-each outcome when considered ranked.}
+\item{estimate_cumulative}{A string indicating the column of \code{data} containing the cumulative effect size as each outcome is added.}
+
+\item{lower_cumulative}{A string indicating the column of \code{data} containing the lower boundary of the confidence interval for the cumulative effect as each outcome is added.}
+
+\item{upper_cumulative}{A string indicating the column of \code{data} containing the upper boundary of the confidence interval for the cumulative effect size as each outcome is added.}
+
+\item{pval_cumulative}{A string indicating the column of \code{data} containing the p value for estimated cumulative effect size as each outcome is added.}
+
+\item{estimate_individual}{A string indicating the column of \code{data} containing the effect size for each outcome when considered independently.}
+
+\item{lower_individual}{A string indicating the column of \code{data} containing the lower boundary of the confidence interval for the effect size for each outcome
+when considered independently.}
 
 \item{upper_individual}{A string indicating the column of \code{data} containing
-the upper boundary of the confidence interval for the cumulative effect size for
-each outcome when considered ranked.}
+the upper boundary of the confidence interval for the effect size for each outcome
+when considered independently.}
 
 \item{pval_individual}{A string indicating the column of \code{data} containing
 the p value for estimated cumulative effect size for
-each outcome when considered independently (not ranked).}
+each outcome when considered independently.}
 
-\item{ignore_missing}{A logical indicating if missing columns are allowed. If \code{TRUE}, missing columns are replaced with \code{NA}}
+\item{ignore_missing}{A logical indicating if behaviour of columns of data are not found. If \code{TRUE}, columns with no match in \code{data} are replaced with \code{NA} and a message is returned indicating this.}
 
 \item{data}{A data frame containing analysis results}
 
-\item{win_inherit}{A string indicating the column of \code{data} containing the
-inherited wins for each outcome.}
-
-\item{win}{A string indicating the column of \code{data} containing the wins for
-each outcome.}
-
-\item{tie}{A string indicating the column of \code{data} containing the ties for
-each outcome.}
-
-\item{loss}{A string indicating the column of \code{data} containing the losses for
-each outcome.}
-
-\item{loss_inherit}{A string indicating the column of \code{data} containing the
-inherited losses for each outcome.}
-
-\item{ci_lower_individual}{A string indicating the column of \code{data} containing
-the lower boundary of the confidence interval for the effect size for each outcome
-when considered independently (not ranked).}
-
-\item{ci_upper_individual}{A string indicating the column of \code{data} containing
-the upper boundary of the confidence interval for the effect size for each outcome
-when considered independently (not ranked).}
-
-\item{effect_name}{A string specifying type of analysis to appear in the forest plot label.}
+\item{effect_name}{A string indicating the the column of \code{data} containing the effect size name, or a string specifying this directly. See Details.}
+}
+\value{
+A \code{Winnify} object. See \link{winnify} for details.
 }
 \description{
 Convert a data frame to a Winnify object
 }
+\details{
+\code{data} is assumed to have rows ordered from most important to least important.
+
+\code{tie_handling} is used to specify the default option for the \code{pairs_tie} argument in \link{plot.Winnify}. See this function's help file for more detail.
+
+Arguments \code{effect_name}, \code{neutral_point} and \code{tie_handling} will first look for a column in \code{data} that matches the value supplied.
+If no matching column is found, the input is treated as a constant and is added to the output.
+By default, \code{effect_name} looks for a column "effect_size", and if this column is not found then it will use "Effect size" as a constant label for the
+output. By default, \code{neutral_point} and \code{tie_handling} are omitted. 
+
+If \code{NULL} is supplied a string arguments, then that column is skipped and NA values are returned where relevant with no message.
+This is more explicit than setting \code{ignore_missing} to be \code{TRUE} and is recommended if columns are missing in \code{data}.
+}
 \examples{
 
-data <- data.frame(outcome_names=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
-                   win_inherit=c(0,15,25,33),
-                   win=c(15,10,8,15),
-                   tie=c(80,60,40,15),
-                   loss=c(5,10,12,10),
-                   loss_inherit=c(0,5,15,27),
+data <- data.frame(endpoint=c("Death", "Length of hospital stay", "Time off work", "Wellbeing"),
+                   wins = c(15,25,33,48),
+                   ties =c(80,60,40,15),
+                   losses =c(5,15,27,37),
                    win_ratio=c(3,1,0.67,1.5),
                    ci_lower=c(2.6,0.6,0.27,1.1),
                    ci_upper=c(3.4,1.4,1.07,1.9),
                    win_ratio_cum=c(3,1.67,1.22,1.30),
                    ci_lower_cum=c(2.6,1.32,0.92,1.10),
-                   ci_upper_cum=c(3.4,2.02,1.52,1.50),
-                   pval_cum=NA,
-                   pval=NA
+                   ci_upper_cum=c(3.4,2.02,1.52,1.50)
 )
 
 
 result <- as_winnify(data,
+                     effect_size = "Win Ratio",
+                     neutral_point = 1,
+                     tie_handling = "drop", 
+                     outcome_names = "endpoint", 
+                     win_cumulative = "wins",
+                     tie_cumulative = "ties",
+                     loss_cumulative = "losses",
                      estimate_cumulative = "win_ratio_cum",
                      lower_cumulative="ci_lower_cum",
                      upper_cumulative ="ci_upper_cum",
                      estimate_individual = "win_ratio",
                      lower_individual="ci_lower",
                      upper_individual ="ci_upper",
-                     pval_cumulative = "pval_cum",
-                     pval_individual = "pval",
-                     neutral_point = 1
+                     pval_cumulative = NULL,
+                     pval_individual = NULL
 )
 plot(result)
 

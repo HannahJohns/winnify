@@ -60,16 +60,20 @@
 #' The right hand side of \code{formula} provides grouping variable, ID variable, strata, time and any covariates used for inverse-probability of censoring weighting.
 #' These are marked using the following functions:
 #' \itemize{
-#' \item \code{arm(x)} - marks \code{x} as being the grouping variable. Is mandatory in the formula.
-#' \item \code{id(x)} - marks \code{x} as being the ID variable
-#' \item \code{stratum(x)} - marks \code{x} as being the stratum variable
-#' \item \code{time(x)} - marks \code{x} as being the time variable for time-varying covariates.
+#' \item \code{w_arm(x)} - marks \code{x} as being the grouping variable. Is mandatory in the formula.
+#' \item \code{w_id(x)} - marks \code{x} as being the ID variable
+#' \item \code{w_stratum(x)} - marks \code{x} as being the stratum variable
+#' \item \code{w_time(x)} - marks \code{x} as being the time variable for time-varying covariates.
 #' }
 #' All unmarked terms are assumed to be covariates used for estimating inverse-probability
 #' of censoring weighting. Note that win.stat does not support covariate adjustment of the
 #' treatment effect estimate. Use the \code{iptw.weight} argument to do this.
 #'
+#' @returns this still needs written
 #'
+#' @examples
+#' 
+#' #Examples need written still
 #'
 #'
 wins <- function(formula, data,
@@ -131,7 +135,7 @@ wins <- function(formula, data,
 
         # Formula Parsing --------------------------------
 
-        specials <- c("wins_id","wins_arm","wins_stratum","wins_time")
+        specials <- c("w_id","w_arm","w_stratum","w_time")
 
         lhs <- terms.formula(formula[c(1,2)],specials = specials)
 
@@ -147,19 +151,19 @@ wins <- function(formula, data,
 
 
 
-        idVar <- attr(rhs,"specials")$wins_id
+        idVar <- attr(rhs,"specials")$w_id
         if(!is.null(idVar)){
                 idVar <- attr(rhs,"term.labels")[idVar]
         }
 
-        groupVar <- attr(rhs,"specials")$wins_arm
+        groupVar <- attr(rhs,"specials")$w_arm
         if(is.null(groupVar)){
                 stop("group() is required")
         } else {
                 groupVar <- attr(rhs,"term.labels")[groupVar]
         }
 
-        strataVar <- attr(rhs,"specials")$wins_stratum
+        strataVar <- attr(rhs,"specials")$w_stratum
         if(is.null(strataVar)){
                 if(is.null(stratum.weight)){
                         stratum.weight <- "unstratified"
@@ -169,7 +173,7 @@ wins <- function(formula, data,
                 strataVar <- attr(rhs,"term.labels")[strataVar]
         }
 
-        timeVar <- attr(rhs,"specials")$wins_time
+        timeVar <- attr(rhs,"specials")$w_time
         if(!is.null(timeVar)){
                 timeVar <- attr(rhs,"term.labels")[timeVar]
         }
@@ -215,7 +219,7 @@ wins <- function(formula, data,
         } else {
                 # TODO: Check if stratified analysis was specified and error
 
-                if(!is.null(stratum.weight)) if(stratum.weight != "unstratified") warning(sprintf("stratum.weight is %s but no wins_stratum was specified",stratum.weight ))
+                if(!is.null(stratum.weight)) if(stratum.weight != "unstratified") warning(sprintf("stratum.weight is %s but no w_stratum was specified",stratum.weight ))
 
                 stratum.weight <- "unstratified"
         }
@@ -417,7 +421,7 @@ wins <- function(formula, data,
 
                                 }
 
-                                if(nrow(out)>1) stop(sprintf("ID %s has multiple outcome values. Is wins_time() missing?",x[,"id"]))
+                                if(nrow(out)>1) stop(sprintf("ID %s has multiple outcome values. Is w_time() missing?",x[,"id"]))
                                 out
                         }))
                 }

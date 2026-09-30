@@ -33,6 +33,9 @@ wins(formula, data)
 
 \item{...}{Arguments passed from user defined functions for \code{win.strategy}. See \link[WINS]{win.stat}}
 }
+\value{
+this still needs written
+}
 \description{
 A wrapper function for win.stat() function, allowing it to be used
 with winnify(). It also provides several quality of life improvements to the
@@ -76,12 +79,18 @@ Values for \code{np.direction} and \code{tau} correspond to each of these terms 
 The right hand side of \code{formula} provides grouping variable, ID variable, strata, time and any covariates used for inverse-probability of censoring weighting.
 These are marked using the following functions:
 \itemize{
-\item \code{arm(x)} - marks \code{x} as being the grouping variable. Is mandatory in the formula.
-\item \code{id(x)} - marks \code{x} as being the ID variable
-\item \code{stratum(x)} - marks \code{x} as being the stratum variable
-\item \code{time(x)} - marks \code{x} as being the time variable for time-varying covariates.
+\item \code{w_arm(x)} - marks \code{x} as being the grouping variable. Is mandatory in the formula.
+\item \code{w_id(x)} - marks \code{x} as being the ID variable
+\item \code{w_stratum(x)} - marks \code{x} as being the stratum variable
+\item \code{w_time(x)} - marks \code{x} as being the time variable for time-varying covariates.
 }
 All unmarked terms are assumed to be covariates used for estimating inverse-probability
 of censoring weighting. Note that win.stat does not support covariate adjustment of the
 treatment effect estimate. Use the \code{iptw.weight} argument to do this.
+}
+\examples{
+
+#Examples need written still
+
+
 }
