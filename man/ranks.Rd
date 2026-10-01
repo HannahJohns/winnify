@@ -20,14 +20,14 @@ ranks(formula,data,ranks_statistic,exponentiate=FALSE,...)
 \value{
 A one-row data frame containing the following:
 \describe{
-\item effect_size - The name of the \code{ranks_statistic} function
-\item estimate - The estimate from \code{ranks_statistic} function
-\item lower - The lower bound of the condifence interval estimate from \code{ranks_statistic} function
-\item upper - The upper bound of the confidence interval estimate from \code{ranks_statistic} function
-\item pval - \code{NA}
-\item win - The unadjusted number of wins
-\item loss - The unadjusted number of losses
-\item tie - The unadjusted number of ties
+\item{effect_size}{The name of the \code{ranks_statistic} function}
+\item{estimate}{The estimate from \code{ranks_statistic} function}
+\item{lower}{The lower bound of the condifence interval estimate from \code{ranks_statistic} function}
+\item{upper}{The upper bound of the confidence interval estimate from \code{ranks_statistic} function}
+\item{pval}{\code{NA}}
+\item{win}{The unadjusted number of wins}
+\item{loss}{The unadjusted number of losses}
+\item{tie}{The unadjusted number of ties}
 }
 }
 \description{
@@ -40,11 +40,11 @@ set of ranks and then runs \code{ranks_statistic}. When combined with \code{\lin
 it allows arbitrary analysis functions to be used for Generalised Pairwise Comparisons
 with Prioritised Outcomes.
 
-\code{ranks_statistic} must satisfy the following criteria:
-\describe{
-\item the first argument of the function must be a formula
-\item there must be a named argument called \code{data} for providing the data
-\item it must have \code{coef()} and \code{\confint()} methods available
+The \code{ranks_statistic} function must satisfy the following criteria:
+\itemize{
+\item The first argument of the function must be a formula
+\item There must be a named argument called \code{data} for providing the data
+\item It must have \code{coef()} and \code{confint()} methods available for its output, which return the effect size and confidence intervals respectively
 }
 
 The left hand side of \code{formula} should list outcomes in order
@@ -61,6 +61,62 @@ are unadjusted and ignore all terms other than the one marked as the grouping va
 }
 \examples{
 
-#Examples need written still
+data <- neuro_improvement
+formula <- mRS+early_neuro_improvement~w_arm(treat)
+
+## Use of ranks() by itself
+
+# pim estimates the Win Odds for ordinal data
+# and is structured to not require additional
+# work to use it.
+
+library(pim)
+
+ranks(formula,data,ranks_statistic = pim)
+
+## Use of ranks() in a winnify() call
+
+x <- winnify(formula, ranks, data, ranks_statistic = pim, exponentiate=TRUE)
+plot(x,effect_neutral_point = 1,pairs_tie = "split")
+
+## Example of use of a function that needs a wrapper
+
+# genodds estimates the Win Odds or Win Ratio for ordinal data
+# but doesn't accept a formula input. This can be fixed by creating
+# a wrapper function for it
+
+library(genodds)
+ 
+my_statistic <- function(formula,data,...){
+        lhs <- stats::model.frame(formula[1:2],data=data)
+        rhs <- stats::model.frame(formula[c(1,3)],data=data)
+  
+        if(ncol(lhs)!=1) stop("Left hand side of formula should have one term")
+        if(ncol(rhs)!=1) stop("Left hand side of formula should have one term")
+  
+        fit <- genodds(response = lhs[,1],
+                       group = rhs[,1],
+                        ...)
+  
+        # genodds returns an object of class Genodds.
+        # if it didn't, we would need to give it a class
+        # we can write write S3 methods for.         
+        # class(fit) <- c("MyRankStat",class(fit))   
+        fit
+}
+
+# There's no coef() or confint() functions for
+# class Genodds. We need to create some S3 methods to
+# extract this info.
+coef.Genodds <- function(x){x$pooled_lnodds}
+confint.Genodds <- function(x){matrix(x$pooled_lnconf.int,nrow=1)}
+
+wo_result <- winnify(formula, ranks, data, ranks_statistic = my_statistic,
+                     exponentiate=TRUE, ties="split")
+plot(wo_result,effect_neutral_point = 1,pairs_tie = "split")
+
+wr_result <- winnify(formula, ranks, data, ranks_statistic = my_statistic,
+                     exponentiate=TRUE, ties="drop")
+plot(wr_result,effect_neutral_point = 1,pairs_tie = "drop")
 
 }

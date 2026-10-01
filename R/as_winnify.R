@@ -13,41 +13,22 @@
 #' \item data.frame objects from base R. See \code{\link{as_winnify.data.frame}} for details.
 #' \item WinRatio objects returned by the \code{\link[WinRatio]{winratio}} function. See \code{\link{as_winnify.WinRatio}} for details.
 #' }
-#' 
+#'
 #' @returns A \code{Winnify} object.
+#' @rdname as_winnify
+#' @export as_winnify 
 as_winnify <- function(x,...){
   UseMethod("as_winnify")
 }
 
+
 #' Convert a data frame to a Winnify object
-#'
 #' @exportS3Method
 #'
-#' @usage
-#' as_winnify.data.frame(data,
-#' outcome_names = "outcome_names",
-#' win_inherit="win_inherit",
-#' win="win",
-#' tie="tie",
-#' loss="loss",
-#' loss_inherit="loss_inherit",
-#' estimate_cumulative ="estimate_cumulative",
-#' lower_cumulative="lower_cumulative",
-#' upper_cumulative ="upper_cumulative ",
-#' pval_cumulative ="pval_cumulative",
-#' estimate_individual ="estimate_individual",
-#' lower_individual ="lower_individual",
-#' upper_individual ="upper_individual",
-#' pval_individual ="pval_individual",
-#' neutral_point=NULL, tie_handling=NULL, effect_name=NULL,
-#' ignore_missing = FALSE
-#' )
-#'
-#' @param data A data frame containing analysis results
+#' @param x A data frame containing analysis results
+#' @param effect_size A string indicating the the column of \code{data} containing the effect size name, or a string specifying this directly. See Details.
 #' @param outcome_names A string indicating the column of \code{data} containing the names
 #' of the outcomes.
-#' 
-#' @param effect_name A string indicating the the column of \code{data} containing the effect size name, or a string specifying this directly. See Details.
 #' @param neutral_point A string indicating the the column of \code{data} containing the neutral value, or a number specifying this directly. See Details. 
 #' @param tie_handling A string indicating the the column of \code{data} containing how ties are handled, or a string specifying this directly. See Details.
 #' @param win_cumulative A string indicating the column of \code{data} containing the total wins as each outcome is added.
@@ -120,7 +101,10 @@ as_winnify <- function(x,...){
 #' )
 #' plot(result)
 #'
-#'
+#' @importFrom base data.frame
+#' @rdname as_winnify
+#' @method as_winnify data.frame
+#' @export
 as_winnify.data.frame <- function(x,
                                   effect_size = NULL,
                                   neutral_point=NULL,
@@ -295,16 +279,12 @@ as_winnify.data.frame <- function(x,
 
 #' Visualise Win Ratio effect estimates from the winratio function
 #'
-#' Convenience function for visualising Win Ratio as estimated by \code{\link[WinRatio]{winratio}}
-#' from the \code{WinRatio} package.
+#' Convenience function for visualising Win Ratio as estimated by \code{\link[WinRatio:winratio]{winratio}}
+#' from the \link[WinRatio:WinRatio-package]{WinRatio} package.
 #'
 #' @exportS3Method
 #'
-#' @usage
-#' as_winnify(x)
-#'
 #' @param x An object of class \code{WinRatio} containing the output from \code{winratio()}
-#'
 #' @returns A \code{Winnify} object. See \link{winnify} for details. 
 #' 
 #' @examples
@@ -330,6 +310,9 @@ as_winnify.data.frame <- function(x,
 #' result <- as_winnify(wr)
 #' plot(result)
 #'
+#' @rdname as_winnify
+#' @method as_winnify WinRatio
+#' @export
 as_winnify.WinRatio <- function(x,...){
 
         # Extract data and create dataframe

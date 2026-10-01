@@ -5,8 +5,6 @@
 #' function's interface, including specifying variables using a formula
 #' instead of requiring the data to have specifically named columns.
 #'
-#' @usage wins(formula, data)
-#'
 #' @param formula An object of class formula describing the analyses to run. Format for model specification are given in Details
 #' @param data A data.frame to analyse
 #' @param effect.size A character vector indicating which effect size measures to return. Allows partial matches with abbreviations, e.g. "wr" will match to "Win Ratio"
@@ -73,8 +71,41 @@
 #'
 #' @examples
 #' 
-#' #Examples need written still
-#'
+#' library(WINS)
+#' library(survival)
+#' 
+#' # Using time-to-event data from the WINS package.
+#' # winnify() expects a single data frame.
+#'  
+#' df <- data_tte
+#' df$strata <- rbinom(n=nrow(df),prob = 0.5,size = 1)
+#' df1 <- Z_t_trt
+#' df2 <- Z_t_con
+#' df$id <- paste0(df$arm,df$id)
+#' df1$id <- paste0("A",df1$id)
+#' df2$id <- paste0("B",df2$id)
+#' df$time <- 0
+#' data <- merge(
+#'         rbind(
+#'                 df1,
+#'                 df2
+#'         ),
+#'         df,
+#'         all.x = TRUE
+#' )
+#' 
+#' ## Use of wins() by itself 
+#' 
+#' formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~w_arm(arm) + w_stratum(strata) + w_id(id) + w_time(time) + Z1 + Z2
+#' wins(formula,data)
+#' 
+#' ## Use of wins() in a winnify() call
+#' 
+#' wins(formula,data)
+#' x <- winnify(formula,wins,data, tau=c(1,0.5,0))
+#' plot(x, effect_size = "wr")
+#' plot(x, effect_size = "wo")
+#' plot(x, effect_size = "nb") 
 #'
 wins <- function(formula, data,
                  effect.size = c("Win Ratio","Win Odds","Net Benefit"),
@@ -507,7 +538,7 @@ wins <- function(formula, data,
         # returned from win.stat() and if they're not this bugged behaviour
         # we print it using message() so that other people can suppress
         # if they want to.
-        messages <- capture.output({
+        messages <- utils::capture.output({
                 out <- win.stat(
                         data=main_data,
                         ep_type=ep_type,

@@ -4,7 +4,22 @@
 \alias{wins}
 \title{Wrapper for the win.stat() function from the WINS package}
 \usage{
-wins(formula, data)
+wins(
+  formula,
+  data,
+  effect.size = c("Win Ratio", "Win Odds", "Net Benefit"),
+  iptw.weight = NULL,
+  alpha = 0.05,
+  tau = 0,
+  np.direction = "larger",
+  horizon = Inf,
+  win.strategy = NULL,
+  pvalue = c("two-sided", "one-sided"),
+  stratum.weight = c("unstratified", "MH-type", "wt.stratum1", "wt.stratum2", "equal"),
+  method = c("unadjusted", "ipcw_tau", "ipcw", "covipcw", "iptw", "iptw_ipcw",
+    "iptw_covipcw"),
+  ...
+)
 }
 \arguments{
 \item{formula}{An object of class formula describing the analyses to run. Format for model specification are given in Details}
@@ -90,7 +105,40 @@ treatment effect estimate. Use the \code{iptw.weight} argument to do this.
 }
 \examples{
 
-#Examples need written still
+library(WINS)
+library(survival)
 
+# Using time-to-event data from the WINS package.
+# winnify() expects a single data frame.
+ 
+df <- data_tte
+df$strata <- rbinom(n=nrow(df),prob = 0.5,size = 1)
+df1 <- Z_t_trt
+df2 <- Z_t_con
+df$id <- paste0(df$arm,df$id)
+df1$id <- paste0("A",df1$id)
+df2$id <- paste0("B",df2$id)
+df$time <- 0
+data <- merge(
+        rbind(
+                df1,
+                df2
+        ),
+        df,
+        all.x = TRUE
+)
+
+## Use of wins() by itself 
+
+formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~w_arm(arm) + w_stratum(strata) + w_id(id) + w_time(time) + Z1 + Z2
+wins(formula,data)
+
+## Use of wins() in a winnify() call
+
+wins(formula,data)
+x <- winnify(formula,wins,data, tau=c(1,0.5,0))
+plot(x, effect_size = "wr")
+plot(x, effect_size = "wo")
+plot(x, effect_size = "nb") 
 
 }

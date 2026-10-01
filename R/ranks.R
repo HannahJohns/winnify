@@ -17,11 +17,11 @@
 #' it allows arbitrary analysis functions to be used for Generalised Pairwise Comparisons
 #' with Prioritised Outcomes.
 #' 
-#' \code{ranks_statistic} must satisfy the following criteria:
-#' \describe{
-#' \item the first argument of the function must be a formula
-#' \item there must be a named argument called \code{data} for providing the data
-#' \item it must have \code{coef()} and \code{\confint()} methods available
+#' The \code{ranks_statistic} function must satisfy the following criteria:
+#' \itemize{
+#' \item The first argument of the function must be a formula
+#' \item There must be a named argument called \code{data} for providing the data
+#' \item It must have \code{coef()} and \code{confint()} methods available for its output, which return the effect size and confidence intervals respectively
 #' }
 #' 
 #' The left hand side of \code{formula} should list outcomes in order
@@ -38,19 +38,75 @@
 #' 
 #' @returns A one-row data frame containing the following:
 #' \describe{
-#' \item effect_size - The name of the \code{ranks_statistic} function
-#' \item estimate - The estimate from \code{ranks_statistic} function
-#' \item lower - The lower bound of the condifence interval estimate from \code{ranks_statistic} function
-#' \item upper - The upper bound of the confidence interval estimate from \code{ranks_statistic} function
-#' \item pval - \code{NA}
-#' \item win - The unadjusted number of wins
-#' \item loss - The unadjusted number of losses
-#' \item tie - The unadjusted number of ties
+#' \item{effect_size}{The name of the \code{ranks_statistic} function}
+#' \item{estimate}{The estimate from \code{ranks_statistic} function}
+#' \item{lower}{The lower bound of the condifence interval estimate from \code{ranks_statistic} function}
+#' \item{upper}{The upper bound of the confidence interval estimate from \code{ranks_statistic} function}
+#' \item{pval}{\code{NA}}
+#' \item{win}{The unadjusted number of wins}
+#' \item{loss}{The unadjusted number of losses}
+#' \item{tie}{The unadjusted number of ties}
 #' } 
 #' 
 #' @examples
 #' 
-#' #Examples need written still
+#' data <- neuro_improvement
+#' formula <- mRS+early_neuro_improvement~w_arm(treat)
+#' 
+#' ## Use of ranks() by itself
+#' 
+#' # pim estimates the Win Odds for ordinal data
+#' # and is structured to not require additional
+#' # work to use it.
+#' 
+#' library(pim)
+#' 
+#' ranks(formula,data,ranks_statistic = pim)
+#' 
+#' ## Use of ranks() in a winnify() call
+#' 
+#' x <- winnify(formula, ranks, data, ranks_statistic = pim, exponentiate=TRUE)
+#' plot(x,effect_neutral_point = 1,pairs_tie = "split")
+#' 
+#' ## Example of use of a function that needs a wrapper
+#' 
+#' # genodds estimates the Win Odds or Win Ratio for ordinal data
+#' # but doesn't accept a formula input. This can be fixed by creating
+#' # a wrapper function for it
+#' 
+#' library(genodds)
+#'  
+#' my_statistic <- function(formula,data,...){
+#'         lhs <- stats::model.frame(formula[1:2],data=data)
+#'         rhs <- stats::model.frame(formula[c(1,3)],data=data)
+#'   
+#'         if(ncol(lhs)!=1) stop("Left hand side of formula should have one term")
+#'         if(ncol(rhs)!=1) stop("Left hand side of formula should have one term")
+#'   
+#'         fit <- genodds(response = lhs[,1],
+#'                        group = rhs[,1],
+#'                         ...)
+#'   
+#'         # genodds returns an object of class Genodds.
+#'         # if it didn't, we would need to give it a class
+#'         # we can write write S3 methods for.         
+#'         # class(fit) <- c("MyRankStat",class(fit))   
+#'         fit
+#' }
+#' 
+#' # There's no coef() or confint() functions for
+#' # class Genodds. We need to create some S3 methods to
+#' # extract this info.
+#' coef.Genodds <- function(x){x$pooled_lnodds}
+#' confint.Genodds <- function(x){matrix(x$pooled_lnconf.int,nrow=1)}
+#' 
+#' wo_result <- winnify(formula, ranks, data, ranks_statistic = my_statistic,
+#'                      exponentiate=TRUE, ties="split")
+#' plot(wo_result,effect_neutral_point = 1,pairs_tie = "split")
+#' 
+#' wr_result <- winnify(formula, ranks, data, ranks_statistic = my_statistic,
+#'                      exponentiate=TRUE, ties="drop")
+#' plot(wr_result,effect_neutral_point = 1,pairs_tie = "drop")
 #' 
 ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
    
@@ -60,12 +116,12 @@ ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
     specials <- c("w_id","w_arm","w_stratum","w_time")
     accepted_specials <- c("w_arm")
 
-    lhs <- terms.formula(formula[c(1,2)],specials = specials)
+    lhs <- stats::terms.formula(formula[c(1,2)],specials = specials)
     for(i in specials){
             if(length(attr(lhs,"specials")[[i]])>0) stop(sprintf("%s() should not be used on left hand side of formula",i))
     }
 
-    rhs <- terms.formula(formula[c(1,3)],specials = specials)
+    rhs <- stats::terms.formula(formula[c(1,3)],specials = specials)
     for(i in accepted_specials){
             if(length(attr(rhs,"specials")[[i]])>1) stop(sprintf("%s() should only be used once in the right hand side of formula",i))
     }
@@ -87,7 +143,7 @@ ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
    
     # Main Data Setup --------------------------------
 
-    main_data <- model.frame(rhs,data)
+    main_data <- stats::model.frame(rhs,data)
 
     treatVar <- which(groupVar == colnames(main_data))
     if(!("factor" %in% class(main_data[,treatVar]))) main_data[,treatVar] <- as.factor(main_data[,treatVar])
@@ -133,7 +189,6 @@ ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
         outcome_var[this_match] <- i
     }
 
-
     # There could be something funny in the column names for main_data, so we'll pick a variable name that isn't taken
     if("outcome" %in% colnames(main_data)){
         outcome_name <- setdiff(paste0("outcome",1:ncol(main_data)),colnames(main_data))[1]
@@ -145,7 +200,6 @@ ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
 
 
     # Get wins, losses and ties based on pairwise comparisons
-
     if(length(otherVars)>0){
         warning("win, loss and tie estimates ignore all formula terms beyond group membership")
     }
@@ -155,14 +209,25 @@ ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
         pwc[2,]
     )
     
-    new_formula <- as.formula(paste0(outcome_name,as.character(rhs)[1],paste0("`",as.character(rhs)[2],"`",collapse="")))
+    new_formula <- stats::as.formula(paste0(outcome_name,as.character(rhs)[1],paste0("`",as.character(rhs)[2],"`",collapse="")))
 
     analysis <- ranks_statistic(new_formula,data=main_data,...)
     effectSize <- coef(analysis)
     confidenceInterval <- confint(analysis)
+   
+    if(length(effectSize)>1){
+        effectSize <- effectSize[grepl(groupVar,names(effectSize),fixed = TRUE)]
+    }
     
-    effectSize <- effectSize[grepl(groupVar,names(effectSize),fixed = T)]
-    confidenceInterval <- confidenceInterval[grepl(groupVar,rownames(confidenceInterval),fixed = T),,drop=FALSE]
+    if(is.matrix(confidenceInterval)){
+        if(nrow(confidenceInterval)>1){
+            confidenceInterval <- confidenceInterval[grepl(groupVar,rownames(confidenceInterval),fixed = T),,drop=FALSE]
+        }
+    } else if(is.vector(x)){
+        confidenceInterval <- matrix(confidenceInterval,nrow=1)
+    } else {
+        stop("confint(ranks_statistic()) doesn't return a matrix or vector")
+    }
 
     if(length(effectSize)>1) stop(sprintf("coef(%s(...)) retuned more than one value that matched %s", stat_name,groupVar))
     if(nrow(confidenceInterval)>1) stop(sprintf("confint(%s(...)) retuned more than one row that matched %s", stat_name,groupVar))
@@ -184,7 +249,6 @@ ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
     }
 
     rownames(out) <- NULL
-
     return(out)
 
 }

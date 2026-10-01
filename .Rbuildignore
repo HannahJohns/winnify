@@ -1,2 +1,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+.vscode*
+winRatioExample.R
+data-raw*
+^LICENSE$

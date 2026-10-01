@@ -2,27 +2,30 @@
 #'
 #' @description 
 #' winnify is a wrapper function that facilitates improved reporting of 
-#' Generalised Pairwise Comparisons with Prioritised Outcomes.
+#' Generalised Pairwise Comparisons with Prioritised Outcomes e.g.
+#' Win Ratio (Pocock et al. 2012), Win Odds (Dong et al. 2020) and
+#' Net Benefit (Buyse et al. 2010).
+#' 
 #' It takes a formula that specifies one or more outcome variables
 #' and then iteratively executes an analysis function to estimate
 #' a statistic based on the first outcome, then the first and second outcome,
 #' and so on. It also estimates the statistic on each outcome independently
-#' of all other outcomes to provide additional context about the 
+#' of all other outcomes to provide additional context.
 #' 
 #' In doing so, it provides convenient estimates of the statistic
 #' as successively less important outcomes are added to the analysis.
 #' This enables improved visualisation of results across outcomes and
-#' more transparent reporting. 
+#' more transparent reporting (Johns et al. 2026). 
 #' 
 #' It also facilitates the use of rank-based statistical functions
 #' for Generalised Pairwise Comparisons with Prioritised Outcomes
-#' when prefernces among pairwise comparisons are fully transitive.  
+#' when preferences among pairwise comparisons are fully transitive. 
 #'  
-#' @usage winnify(formula, statistic, data)
 #'
 #' @param formula An object of class formula describing the analyses to run. Details of model specification are given in Details
 #' @param statistic A function for performing analysis based on a formula and data. Details are given in Details.
 #' @param data A data.frame to analyse
+#' @param ... Other arguments passed onto \code{statistic}
 #'
 #' @details
 #' The left hand side of the formula should list all outcomes to consider, in order of decreasing importance from the left.
@@ -39,29 +42,47 @@
 #' \code{w_arm(x)} is needed for both the supplied \link{wins} and \link{ranks} functions,
 #' while \code{w_id(x)}, \code{w_stratum(x)} and \code{w_time(x)} are only accepted by \link{wins}. 
 #' 
-#' @returns This needs written still
+#' @returns An object of class Winnify
 #' 
 #' @examples
-#'
-#' # This needs written still
 #' 
-#' statistic <- function(formula,data){
-#'
-#'         fit <- genodds::genodds(response = data[,as.character(formula)[2]],
-#'                                 group = data[,as.character(formula)[3]])
-#'
-#'         out <- c(fit$pooled_lnodds,fit$pooled_lnconf.int, fit$pooled_p)
-#'         names(out) <- c("estimate","lower","upper","pval")
-#'         out[1:3] <- exp(out[1:3])
-#'         out
+#' library(genodds)
+#' 
+#' my_statistic <- function(formula,data,...){
+#'         lhs <- stats::model.frame(formula[1:2],data=data)
+#'         rhs <- stats::model.frame(formula[c(1,3)],data=data)
+#'   
+#'         if(ncol(lhs)!=1) stop("Left hand side of formula should have one term")
+#'         if(ncol(rhs)!=1) stop("Left hand side of formula should have one term")
+#'   
+#'         fit <- genodds(response = lhs[,1],
+#'                        group = rhs[,1],
+#'                         ...)
+#'   
+#'         # genodds returns an object of class Genodds.
+#'         # if it didn't, we would need to give it a class
+#'         # we can write write S3 methods for.         
+#'         # class(fit) <- c("MyRankStat",class(fit))   
+#'         fit
 #' }
-#' result <- winnify(mRS+early_neuro_improvement~treat,
-#'                   statistic = statistic,
-#'                   data = neuro_improvement)
+#' 
+#' # There's no coef() or confint() functions for
+#' # class Genodds. We need to create some S3 methods to
+#' # extract this info.
+#' coef.Genodds <- function(x){x$pooled_lnodds}
+#' confint.Genodds <- function(x){matrix(x$pooled_lnconf.int,nrow=1)}
 #'
+#' result <- winnify(mRS+early_neuro_improvement~w_arm(treat),
+#'                   statistic = ranks,
+#'                   ranks_statistic = my_statistic,
+#'                   data = neuro_improvement)
+#' 
 #' plot(result,effect_neutral_point = 1,effect_scale_log = FALSE)
 #'
-#'
+#' @references Johns, Hannah, et al. "Practical guidance for Win Statistics and Tournament Methods for multifaceted outcomes in stroke research: Review and recommendations." International Journal of Stroke (2026) DOI: https://doi.org/10.1177/17474930261475853
+#' 
+#' @rdname winnify
+#' @export winnify
 winnify <- function(formula, statistic=NULL, data, ...){
 
         # Input sanitation
@@ -69,22 +90,21 @@ winnify <- function(formula, statistic=NULL, data, ...){
         if(!is.function(statistic)) stop("statistic should be a function with formula and data arguments")
         if(!rlang::is_formula(formula)) stop("formula should be a formula")
 
-        if(!("formula" %in% formalArgs(statistic))) stop("statistic function needs a formula argument")
-        if(!("data" %in% formalArgs(statistic))) stop("statistic function needs a data argument")
+        if(!("formula" %in% methods::formalArgs(statistic))) stop("statistic function needs a formula argument")
+        if(!("data" %in% methods::formalArgs(statistic))) stop("statistic function needs a data argument")
 
         lhs <- formula[-3]
         rhs <- formula[-2]
 
-        lhs <- attr(terms(lhs),"term.labels")
+        lhs <- attr(stats::terms(lhs),"term.labels")
 
-        # This is potentially something that should be parallelised
         out <- lapply(1:length(lhs), function(i){
                 tmp_data <- data
 
-                tmp_formula <- as.formula(paste(c(lhs[i],as.character(rhs)),collapse = ""))
+                tmp_formula <- stats::as.formula(paste(c(lhs[i],as.character(rhs)),collapse = ""))
                 individual_result <- statistic(formula=tmp_formula,data = tmp_data,...)
 
-                tmp_formula <- as.formula(paste(c(paste(lhs[1:i],collapse="+"),as.character(rhs)),collapse = ""))
+                tmp_formula <- stats::as.formula(paste(c(paste(lhs[1:i],collapse="+"),as.character(rhs)),collapse = ""))
                 cumulative_result <- statistic(tmp_formula,tmp_data,...)
 
 
@@ -149,43 +169,10 @@ winnify <- function(formula, statistic=NULL, data, ...){
 
 }
 
-
-#' Visualise prioritised outcome effect estimates
-#'
-#' Visualises the contribution of individual outcomes under generalized pairwise
-#' comparisons with prioritized outcomes methods, e.g. Win Ratio (Pocock 2012),
-#' Win Odds (Dong 2020) and Net Benefit (Buyse 2010).
-#'
-#' @exportS3Method
-#'
-#' @usage plot(
-#' x,
-#' label_effect=NULL,
-#' label_control = "control",
-#' label_intervention = "intervention",
-#' pairs_tie=NULL,
-#' pairs_tie.color="#222222",
-#' pairs_tie.linetype="dashed",
-#' pairs.fill = NULL,
-#' pairs.fill.reverse = FALSE,
-#' pairs_component.width  = 1,
-#' pairs_overall.width  = 0.6,
-#' effect_scale_log=FALSE,
-#' effect_neutral_point=NULL,
-#' effect_neutral_line.color = "#222222",
-#' effect_background_loss.fill = NULL,
-#' effect_background_win.fill = NULL,
-#' effect_background.alpha=0.15,
-#' effect_individual_color = "grey40",
-#' effect_cumulative.color = "black",
-#' effect_cumulative.dodge_width = 0.1,
-#' effect_cumulative_polygon.height = 0.36,
-#' effect_cumulative.linetype = "dashed",
-#' ...
-#' )
-#'
+#' 
 #' @param x a \code{Winnify} object returned by \code{\link{winnify}()} or \code{\link{as_winnify}()}
-#' @param label_effect a character string for labelling the effect size. Inferred from \code{x} if possible.
+#' @param effect_size a character string or integer specifying which effect size to plot. Only relevant when \code{x} reports multiple effect sizes.
+#' @param label_effect a character string for labelling the effect size. Inferred from \code{x} and \code{effect_size} if possible.
 #' @param label_control a character string indicating the name of the control group
 #' @param label_intervention a character string indicating the name of the intervention/comparator group
 #' @param pairs_tie a character string indicating where the line splitting ties in the Overall row of the pairs plot should be drawn. If \code{NA}, no line is drawn. See Details. Inferred from \code{x} if possible.
@@ -235,11 +222,12 @@ winnify <- function(formula, statistic=NULL, data, ...){
 #'
 #'
 #'
-#' @returns A \code{\link[patchwork]{patchwork}} object
 #'
-#' @references Johns, Hannah, et al. "Practical guidance for Win Statistics and Tournament Methods for multifaceted outcomes in stroke research: Review and recommendations." International Journal of Stroke (2026) DOI: https://doi.org/10.1177/17474930261475853
-#'
-#'
+#' 
+#' @importFrom base plot
+#' @rdname winnify
+#' @method plot Winnify
+#' @export plot Winnify
 plot.Winnify <- function(x,
                          effect_size = NULL,
 
@@ -355,7 +343,7 @@ plot.Winnify <- function(x,
                 effect_size <- unique(x$effect_size)[as.integer(effect_size)]
         } else if(is.character(effect_size)){
 
-                editDistances <- adist(tolower(effect_size),tolower(unique(x$effect_size)),costs = c(insertions = 1, deletions = Inf, substitutions = Inf))
+                editDistances <- utils::adist(tolower(effect_size),tolower(unique(x$effect_size)),costs = c(insertions = 1, deletions = Inf, substitutions = Inf))
                 editDistances <- c(editDistances)
                 names(editDistances) <- unique(x$effect_size)
                 editDistances <- editDistances[is.finite(editDistances)]
