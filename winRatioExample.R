@@ -1,41 +1,23 @@
 
 rm(list=ls())
 
-
-
-library(WINS)
+library(winnify)
 library(survival)
 
-# Using time-to-event data from the WINS package.
-# winnify() expects a single data frame.
- 
-df <- data_tte
-df$strata <- rbinom(n=nrow(df),prob = 0.5,size = 1)
-df1 <- Z_t_trt
-df2 <- Z_t_con
-df$id <- paste0(df$arm,df$id)
-df1$id <- paste0("A",df1$id)
-df2$id <- paste0("B",df2$id)
-df$time <- 0
-data <- merge(
-        rbind(
-                df1,
-                df2
-        ),
-        df,
-        all.x = TRUE
-)
+data <- tte_longform
 
-## Use of wins() by itself 
+formula <- Surv(time,event_1)+Surv(time,event_2)+Surv(time,event_3)~w_arm(arm) + w_stratum(strata) + w_id(id) + w_time(time) + Z1 + Z2
 
-wins(formula,data)
+x <- winnify(formula,data=data, tau=0.5)
+x
+
+plot(x)
 
 
+formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~w_arm(arm) + w_stratum(strata) + w_id(id) + w_time(time) + Z1 + Z2
 
-
-
-
-
+x <- winnify(formula,data=tte_outcomes,data_covariates=tte_covariates)
+x
 
 
 

@@ -23,8 +23,8 @@
 #'  
 #'
 #' @param formula An object of class formula describing the analyses to run. Details of model specification are given in Details
-#' @param statistic A function for performing analysis based on a formula and data. Details are given in Details.
 #' @param data A data.frame to analyse
+#' @param statistic A function for performing analysis based on a formula and data. Details are given in Details.
 #' @param ... Other arguments passed onto \code{statistic}
 #'
 #' @details
@@ -83,7 +83,7 @@
 #' 
 #' @rdname winnify
 #' @export winnify
-winnify <- function(formula, statistic=NULL, data, ...){
+winnify <- function(formula, data, statistic=winnify::wins, ...){
 
         # Input sanitation
         data <- as.data.frame(data)

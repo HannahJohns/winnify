@@ -7,6 +7,7 @@
 #'
 #' @param formula An object of class formula describing the analyses to run. Format for model specification are given in Details
 #' @param data A data.frame to analyse
+#' @param data_covariates An optional data.frame containing covariates for inverse probability of censoring weighting
 #' @param effect.size A character vector indicating which effect size measures to return. Allows partial matches with abbreviations, e.g. "wr" will match to "Win Ratio"
 #' @param iptw.weight A numeric vector giving the weights for IPT weighting. See \link[WINS]{win.stat}
 #' @param alpha  A numeric argument giving the significance level. See \link[WINS]{win.stat}
@@ -107,7 +108,7 @@
 #' plot(x, effect_size = "wo")
 #' plot(x, effect_size = "nb") 
 #'
-wins <- function(formula, data,
+wins <- function(formula, data, data_covariates=NULL,
                  effect.size = c("Win Ratio","Win Odds","Net Benefit"),
                  iptw.weight=NULL,
                  alpha=0.05,
@@ -327,10 +328,21 @@ wins <- function(formula, data,
         # Summarise main_data by id. The main dataset should only have
         # one unique non-missing value of each outcome, arm and strata
         main_data <- do.call("rbind",by(main_data,main_data[,"id"],function(x){
+        
+                x<<- x
+          
                 out <- x
                 out <- out[1,]
 
-                for(i in colnames(x)){
+                # Outcome variables need to be handled differently,
+                # because if it's time to event we need to do missing
+                # across either of Y_j or Delta_j
+                
+                nonOutcome_vars <- colnames(x)[!grepl("(Delta|Y)_[0-9]+",colnames(x))]
+                outcome_numbers <- colnames(x)[grepl("(Y)_[0-9]+",colnames(x))]
+                outcome_numbers <- gsub("Y_","",outcome_numbers)
+          
+                for(i in nonOutcome_vars){
                         out[,i] <- NA
                         thisVar <- x[,i]
                         thisVar <- unique(thisVar[!is.na(thisVar)])
@@ -357,7 +369,58 @@ wins <- function(formula, data,
 
                         }
                         out[,i] <- thisVar
+                }
+                
+                for(i in outcome_numbers){
+                  
+                        out[,paste0("Y_",i)] <- NA
+                        
+                        if(paste0("Delta_",i) %in% colnames(x)){
+                                out[,paste0("Delta_",i)] <- NA 
+                                thisVar_y <- x[,paste0("Y_",i)]
+                                thisVar_d <- x[,paste0("Delta_",i)]
 
+                                thisVar_y <- unique(thisVar_y[!is.na(thisVar_y) & !is.na(thisVar_d)])
+                                thisVar_d <- unique(thisVar_d[!is.na(thisVar_y) & !is.na(thisVar_d)])
+                          
+                                if(length(thisVar_y)>1){
+                                        stop(sprintf("Multiple values of %s found in %s %s",
+                                                        paste0("Y_",i),
+                                                        ifelse(is.null(idVar),"row",idVar),
+                                                        out[,"id"]
+                                        )
+                                        )
+
+                                }
+                                out[,paste0("Y_",i)] <- thisVar_y
+
+                                if(length(thisVar_d)>1){
+                                        stop(sprintf("Multiple values of %s found in %s %s",
+                                                        paste0("Delta_",i),
+                                                        ifelse(is.null(idVar),"row",idVar),
+                                                        out[,"id"]
+                                        )
+                                        )
+
+                                }
+                                out[,paste0("Delta_",i)] <- thisVar_d
+                          
+                        } else {
+                                thisVar <- x[,paste0("Y_",i)]
+                                thisVar <- unique(thisVar[!is.na(thisVar)])
+
+                                if(length(thisVar)>1){
+                                        stop(sprintf("Multiple values of %s found in %s %s",
+                                                        paste0("Y_",i),
+                                                        ifelse(is.null(idVar),"row",idVar),
+                                                        out[,"id"]
+                                        )
+                                        )
+
+                                }
+                                out[,paste0("Y_",i)] <- thisVar
+                        } 
+                
                 }
 
                 if(nrow(out)>1) stop(sprintf("ID %s has multiple outcome values",x[,"id"]))
@@ -372,7 +435,7 @@ wins <- function(formula, data,
         # Covariate Data Setup --------------------------------
 
         if(length(otherVars)>0){
-
+          
                 if(is.null(method)){
                         if(is.null(iptw.weight)){
                                 method  <- "covipcw"
@@ -380,86 +443,129 @@ wins <- function(formula, data,
                                 method <- "iptw_covipcw"
                         }
                 }
-
+                
                 if(length(idVar) == 0 & !is.null(timeVar)){
                         stop("id variable is required if time-varying covariates are used")
                 }
 
-                if(length(idVar)>0){
-                        covariate_data <- data.frame(
-                                id = eval(parse(text=idVar),envir = data)
-                        )
-                } else {
-                        covariate_data <- data.frame(
-                                id = 1:nrow(data)
-                        )
-                }
-
-                if(length(timeVar)>0){
-                        covariate_data <- cbind(
-                                covariate_data,
-                                data.frame(
-                                        time = eval(parse(text=timeVar),envir = data)
+                if(is.null(data_covariates)){
+                        
+                        # Data was entered long form, everything can be found in data and just 
+                        # needs transformed
+                        if(length(idVar)>0){
+                                covariate_data <- data.frame(
+                                        id = eval(parse(text=idVar),envir = data)
                                 )
-                        )
-                } else {
-                        covariate_data <- cbind(
-                                covariate_data,
-                                data.frame(
-                                        time = rep(0,nrow(covariate_data))
+                        } else {
+                                covariate_data <- data.frame(
+                                        id = 1:nrow(data)
                                 )
-                        )
-                }
+                        }
+                
+                        if(length(timeVar)>0){
+                                covariate_data <- cbind(
+                                        covariate_data,
+                                        data.frame(
+                                                time = eval(parse(text=timeVar),envir = data)
+                                        )
+                                )
+                        } else {
+                                covariate_data <- cbind(
+                                        covariate_data,
+                                        data.frame(
+                                                time = rep(0,nrow(covariate_data))
+                                        )
+                                )
+                        }
+                
+                        for(i in otherVars){
+                                covariate_data[, i] <- eval(parse(text=i),envir = data)
+                        }
+                
+                        if(length(timeVar)==0){
+                                # Summarise covariate_data by id. If we're assuming everything is measured at baseline,
+                                # we should only have one unique non-missing value of each outcome, arm and strata
+                                covariate_data <- do.call("rbind",by(covariate_data,covariate_data[,"id"],function(x){
+                                        out <- x
+                                        out <- out[1,]
 
-                for(i in otherVars){
-                        covariate_data[, i] <- eval(parse(text=i),envir = data)
-                }
+                                        for(i in colnames(x)){
+                                                out[,i] <- NA
+                                                thisVar <- x[,i]
+                                                thisVar <- unique(thisVar[!is.na(thisVar)])
 
-                if(length(timeVar)==0){
-                        # Summarise covariate_data by id. If we're assuming everything is measured at baseline,
-                        # we should only have one unique non-missing value of each outcome, arm and strata
-                        covariate_data <- do.call("rbind",by(covariate_data,covariate_data[,"id"],function(x){
-                                out <- x
-                                out <- out[1,]
+                                                # This level of granularity of warning is overkill.
+                                                # Just warn that rows got dropped.
 
-                                for(i in colnames(x)){
-                                        out[,i] <- NA
-                                        thisVar <- x[,i]
-                                        thisVar <- unique(thisVar[!is.na(thisVar)])
+                                                # if(length(thisVar)==0){
+                                                #         warning(sprintf("No non-missing value for %s found in %s %s",
+                                                #                         i,
+                                                #                         ifelse(is.null(idVar),"row",idVar),
+                                                #                         out[,"id"]
+                                                #                         )
+                                                #         )
+                                                # }
 
-                                        # This level of granularity of warning is overkill.
-                                        # Just warn that rows got dropped.
+                                                if(length(thisVar)>1){
+                                                        stop(sprintf("Multiple values of %s found in %s %s",
+                                                                i,
+                                                                ifelse(is.null(idVar),"row",idVar),
+                                                                out[,"id"]
+                                                        )
+                                                        )
 
-                                        # if(length(thisVar)==0){
-                                        #         warning(sprintf("No non-missing value for %s found in %s %s",
-                                        #                         i,
-                                        #                         ifelse(is.null(idVar),"row",idVar),
-                                        #                         out[,"id"]
-                                        #                         )
-                                        #         )
-                                        # }
-
-                                        if(length(thisVar)>1){
-                                                stop(sprintf("Multiple values of %s found in %s %s",
-                                                             i,
-                                                             ifelse(is.null(idVar),"row",idVar),
-                                                             out[,"id"]
-                                                )
-                                                )
+                                                }
+                                                out[,i] <- thisVar
 
                                         }
-                                        out[,i] <- thisVar
 
-                                }
+                                        if(nrow(out)>1) stop(sprintf("ID %s has multiple outcome values. Is w_time() missing?",x[,"id"]))
+                                        out
+                                }))
+                        }
+                
+                        toDrop <- apply(covariate_data,1,function(x){any(is.na(x))})
+                        if(sum(toDrop)>0) warning(sprintf("%d records dropped due to missing covariates",sum(toDrop)))
+                        covariate_data <- covariate_data[which(!toDrop),]
+                
+                } else {
 
-                                if(nrow(out)>1) stop(sprintf("ID %s has multiple outcome values. Is w_time() missing?",x[,"id"]))
-                                out
-                        }))
-                }
+                        # Data was entered as two separate sheets. Life is relatively easy as a result.
 
-                toDrop <- apply(covariate_data,1,function(x){any(is.na(x))})
-                if(sum(toDrop)>0) warning(sprintf("%d records dropped due to missing covariates",sum(toDrop)))
-                covariate_data <- covariate_data[which(!toDrop),]
+                        if(length(idVar)>0){
+                                covariate_data <- data.frame(
+                                        id = eval(parse(text=idVar),envir = data_covariates)
+                                )
+                        } else {
+                                stop("If covarariate_data is supplied, formula must contain an ID variable")
+                        }
+                
+                        if(length(timeVar)>0){
+                                covariate_data <- cbind(
+                                        covariate_data,
+                                        data.frame(
+                                                time = eval(parse(text=timeVar),envir = data_covariates)
+                                        )
+                                )
+                        } else {
+                                covariate_data <- cbind(
+                                        covariate_data,
+                                        data.frame(
+                                                time = rep(0,nrow(covariate_data))
+                                        )
+                                )
+                        }
+                
+                        for(i in otherVars){
+                                covariate_data[, i] <- eval(parse(text=i),envir = data_covariates)
+                        }
+                  
+                        # We can be a lot more trusting od the data sheet in this case - all we need to do is make sure ID and time are unique
+                        if(max(table(covariate_data$id,covariate_data$time))>1){
+                          stop("Some IDs have multiple records at the same time")
+                        } 
+
+                } #End if data_covariates was used 
 
                 covariate_data_trt <- covariate_data[
                         which(
@@ -472,8 +578,8 @@ wins <- function(formula, data,
                                 covariate_data[,"id"] %in% main_data[which(main_data[,"arm"]==levels(main_data[,"arm"])[1]),"id"]
                         ),
                 ]
-
-        } else {
+        } else {                
+                # No covariates for us to worry about
                 if(is.null(method)){
                         if(is.null(iptw.weight)){
                                 method  <- "unadjusted"
@@ -481,7 +587,6 @@ wins <- function(formula, data,
                                 method <- "iptw"
                         }
                 }
-
 
                 covariate_data_trt <- covariate_data_con <- NULL
         }
@@ -539,7 +644,7 @@ wins <- function(formula, data,
         # we print it using message() so that other people can suppress
         # if they want to.
         messages <- utils::capture.output({
-                out <- win.stat(
+                out <- WINS::win.stat(
                         data=main_data,
                         ep_type=ep_type,
                         Z_t_trt = covariate_data_trt,
