@@ -23,12 +23,15 @@ usethis::use_data(tte_longform, overwrite = T)
 df %>%
   mutate(strata = id %%2 ) %>%
   mutate(id = paste0(arm,id)) -> tte_outcomes
+
 rbind(
   df1 %>% mutate(arm = "A"),
   df2 %>% mutate(arm = "B")
 ) %>%
-  mutate(strata = id %%2 ) %>%
-  mutate(id = paste0(arm,id)) -> tte_covariates
+  mutate(id = paste0(arm,id)) %>%
+  select(-arm) -> tte_covariates
+
+tte_covariates
 
 usethis::use_data(tte_outcomes, overwrite = T)
 usethis::use_data(tte_covariates, overwrite = T)

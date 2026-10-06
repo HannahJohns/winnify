@@ -7,6 +7,7 @@
 wins(
   formula,
   data,
+  data_covariates = NULL,
   effect.size = c("Win Ratio", "Win Odds", "Net Benefit"),
   iptw.weight = NULL,
   alpha = 0.05,
@@ -25,6 +26,8 @@ wins(
 \item{formula}{An object of class formula describing the analyses to run. Format for model specification are given in Details}
 
 \item{data}{A data.frame to analyse}
+
+\item{data_covariates}{An optional data.frame containing covariates for inverse probability of censoring weighting}
 
 \item{effect.size}{A character vector indicating which effect size measures to return. Allows partial matches with abbreviations, e.g. "wr" will match to "Win Ratio"}
 
@@ -130,7 +133,9 @@ data <- merge(
 
 ## Use of wins() by itself 
 
-formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~w_arm(arm) + w_stratum(strata) + w_id(id) + w_time(time) + Z1 + Z2
+formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~
+           w_arm(arm) + w_stratum(strata) + w_id(id) + w_time(time) + Z1 + Z2
+
 wins(formula,data)
 
 ## Use of wins() in a winnify() call

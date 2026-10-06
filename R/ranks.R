@@ -24,6 +24,7 @@
 #' \item It must have \code{coef()} and \code{confint()} methods available for its output, which return the effect size and confidence intervals respectively
 #' }
 #' 
+#' 
 #' The left hand side of \code{formula} should list outcomes in order
 #' of importance, with the most important outcome coming first.
 #' Note that these are ranked from smallest value to highest value,
@@ -77,6 +78,8 @@
 #' library(genodds)
 #'  
 #' my_statistic <- function(formula,data,...){
+#' 
+#' 
 #'         lhs <- stats::model.frame(formula[1:2],data=data)
 #'         rhs <- stats::model.frame(formula[c(1,3)],data=data)
 #'   
@@ -110,6 +113,8 @@
 #' 
 ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
    
+    # Silence note about global variable bindings
+
     stat_name <- as.character(substitute(ranks_statistic))
 
     # Formula Parsing --------------------------------
@@ -140,6 +145,8 @@ ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
     }
  
     otherVars <- attr(rhs,"term.labels")[setdiff(1:length(attr(rhs,"term.labels")), unlist(attr(rhs,"specials")))]
+
+
    
     # Main Data Setup --------------------------------
 
@@ -212,9 +219,11 @@ ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
     new_formula <- stats::as.formula(paste0(outcome_name,as.character(rhs)[1],paste0("`",as.character(rhs)[2],"`",collapse="")))
 
     analysis <- ranks_statistic(new_formula,data=main_data,...)
-    effectSize <- coef(analysis)
-    confidenceInterval <- confint(analysis)
-   
+
+    analysis_exports <- .get_coef_confint(analysis)
+    effectSize <- analysis_exports$coef
+    confidenceInterval <- analysis_exports$confint
+      
     if(length(effectSize)>1){
         effectSize <- effectSize[grepl(groupVar,names(effectSize),fixed = TRUE)]
     }
@@ -223,7 +232,7 @@ ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
         if(nrow(confidenceInterval)>1){
             confidenceInterval <- confidenceInterval[grepl(groupVar,rownames(confidenceInterval),fixed = T),,drop=FALSE]
         }
-    } else if(is.vector(x)){
+    } else if(is.vector(confidenceInterval)){
         confidenceInterval <- matrix(confidenceInterval,nrow=1)
     } else {
         stop("confint(ranks_statistic()) doesn't return a matrix or vector")

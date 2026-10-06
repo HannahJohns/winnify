@@ -83,7 +83,7 @@
 #' 
 #' @rdname winnify
 #' @export winnify
-winnify <- function(formula, data, statistic=winnify::wins, ...){
+winnify <- function(formula, statistic=winnify::wins, data, ...){
 
         # Input sanitation
         data <- as.data.frame(data)
@@ -261,6 +261,13 @@ plot.Winnify <- function(x,
 
                          ...
                     ){
+
+        
+        
+        # Silence note about gloval variable bindings
+        level <- width <- p_prev <- p <- pairType <- xmin <- xmax <- ymin <-
+        ymax <- favours_int <- level_offset <- estimat <- ci_lower <- 
+        ci_upper <- outcome_type <- x_coord <- y_coord <- estimate <-  NULL
 
 
         if(is.null(label_control)){

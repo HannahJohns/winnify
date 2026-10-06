@@ -5,7 +5,7 @@
 \alias{plot.Winnify}
 \title{Better Prioritised Outcomes Analyses}
 \usage{
-winnify(formula, statistic = NULL, data, ...)
+winnify(formula, statistic = winnify::wins, data, ...)
 
 \method{plot}{Winnify}(
   x,

@@ -97,7 +97,9 @@
 #' 
 #' ## Use of wins() by itself 
 #' 
-#' formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~w_arm(arm) + w_stratum(strata) + w_id(id) + w_time(time) + Z1 + Z2
+#' formula <- Surv(Y_1,Delta_1)+Surv(Y_2,Delta_2)+Surv(Y_3,Delta_3)~
+#'            w_arm(arm) + w_stratum(strata) + w_id(id) + w_time(time) + Z1 + Z2
+#' 
 #' wins(formula,data)
 #' 
 #' ## Use of wins() in a winnify() call
@@ -169,19 +171,17 @@ wins <- function(formula, data, data_covariates=NULL,
 
         specials <- c("w_id","w_arm","w_stratum","w_time")
 
-        lhs <- terms.formula(formula[c(1,2)],specials = specials)
+        lhs <- stats::terms.formula(formula[c(1,2)],specials = specials)
 
         # We shouldn't have any specials on the left hand side
         for(i in specials){
                 if(length(attr(lhs,"specials")[[i]])>0) stop(sprintf("%s() should not be used on left hand side of formula",i))
         }
 
-        rhs <- terms.formula(formula[c(1,3)],specials = specials)
+        rhs <- stats::terms.formula(formula[c(1,3)],specials = specials)
         for(i in specials){
                 if(length(attr(rhs,"specials")[[i]])>1) stop(sprintf("%s() should only be used once in the right hand side of formula",i))
         }
-
-
 
         idVar <- attr(rhs,"specials")$w_id
         if(!is.null(idVar)){
