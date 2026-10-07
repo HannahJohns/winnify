@@ -19,8 +19,7 @@
 #' 
 #' It also facilitates the use of rank-based statistical functions
 #' for Generalised Pairwise Comparisons with Prioritised Outcomes
-#' when preferences among pairwise comparisons are fully transitive. 
-#'  
+#' when preferences among pairwise comparisons are fully transitive.  
 #'
 #' @param formula An object of class formula describing the analyses to run. Details of model specification are given in Details
 #' @param data A data.frame to analyse
@@ -37,6 +36,7 @@
 #' \item \code{w_id(x)} - marks \code{x} as being the ID variable
 #' \item \code{w_stratum(x)} - marks \code{x} as being the stratum variable
 #' \item \code{w_time(x)} - marks \code{x} as being the time variable for time-varying covariates.
+#' \item \code{w_iptw(x)} - marks \code{x} as being a weight variable for use with iptw weighting
 #' }
 #' 
 #' \code{w_arm(x)} is needed for both the supplied \link{wins} and \link{ranks} functions,

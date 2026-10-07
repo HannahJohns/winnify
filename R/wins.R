@@ -9,7 +9,6 @@
 #' @param data A data.frame to analyse
 #' @param data_covariates An optional data.frame containing covariates for inverse probability of censoring weighting
 #' @param effect.size A character vector indicating which effect size measures to return. Allows partial matches with abbreviations, e.g. "wr" will match to "Win Ratio"
-#' @param iptw.weight A numeric vector giving the weights for IPT weighting. See \link[WINS]{win.stat}
 #' @param alpha  A numeric argument giving the significance level. See \link[WINS]{win.stat}
 #' @param tau A numeric vector argument giving the threshold for minimal clinically important difference. \link[WINS]{win.stat}
 #' @param np.direction A chacaracer vector indicating if a larger or smaller value is better. See the \code{np_direction} argument in \link[WINS]{win.stat}
@@ -19,7 +18,6 @@
 #' @param stratum.weight A character value giving the method for weighting each stratum. See \link[WINS]{win.stat}
 #' @param method A character value giving the method for weighting individual participants. See \link[WINS]{win.stat}
 #' @param ... Arguments passed from user defined functions for \code{win.strategy}. See \link[WINS]{win.stat}
-#'
 #'
 #' @details
 #'
@@ -47,7 +45,8 @@
 #'      }
 #'      }
 #'      \item Comparator vs Reference group is determined based on factor levels, with the first level used as the reference group and the second as the comparator.
-#' }
+#'      \item Rows of input data can be ordered arbitrarily (they are sorted by arm, id and time before being passed to \code{win.stat()})
+#'  }
 #'
 #' The wrapper does not provide arguments for specifying outcome priority or endpoint type.
 #' These values are inferred from user input.
@@ -63,12 +62,30 @@
 #' \item \code{w_id(x)} - marks \code{x} as being the ID variable
 #' \item \code{w_stratum(x)} - marks \code{x} as being the stratum variable
 #' \item \code{w_time(x)} - marks \code{x} as being the time variable for time-varying covariates.
+#' \item \code{w_iptw(x)} - marks \code{x} as being the IPTW weight variable
 #' }
 #' All unmarked terms are assumed to be covariates used for estimating inverse-probability
-#' of censoring weighting. Note that win.stat does not support covariate adjustment of the
-#' treatment effect estimate. Use the \code{iptw.weight} argument to do this.
-#'
-#' @returns this still needs written
+#' of censoring weighting. 
+#' 
+#' @returns A three-row data frame containing the following:
+#' \describe{
+#' \item{effect_size}{The name of the effect size}
+#' \item{estimate}{The estimate from \code{win.stat} function}
+#' \item{lower}{The lower bound of the condifence interval estimate from \code{win.stat} function}
+#' \item{upper}{The upper bound of the confidence interval estimate from \code{win.stat} function}
+#' \item{pval}{The p-value from the \code{win.stat} function}
+#' \item{win}{The number of wins}
+#' \item{loss}{The number of losses}
+#' \item{tie}{The number of ties}
+#' \item{neutral_point}{The effect size estimate considered to be a neutral effect}
+#' \item{tie_handling}{If ties are evenly split between being wins and losses ("split") or ignored ("dropped")}
+#' } 
+#' 
+#' Additionally, the following attributes are returned
+#' \describe{
+#' \item{arguments}{Input values for the function}
+#' \item{arguments_win.stat}{Input values for the \code{win.stat()} function call within this wrapper function}
+#' }
 #'
 #' @examples
 #' 
@@ -110,9 +127,9 @@
 #' plot(x, effect_size = "wo")
 #' plot(x, effect_size = "nb") 
 #'
-wins <- function(formula, data, data_covariates=NULL,
+wins <- function(formula, data,
+                 data_covariates=NULL,
                  effect.size = c("Win Ratio","Win Odds","Net Benefit"),
-                 iptw.weight=NULL,
                  alpha=0.05,
                  tau = 0,
                  np.direction = "larger",
@@ -123,7 +140,6 @@ wins <- function(formula, data, data_covariates=NULL,
                  method  = c("unadjusted","ipcw_tau","ipcw","covipcw","iptw","iptw_ipcw","iptw_covipcw"),
                  ...){
 
-        if(!is.null(iptw.weight)) stop("iptw is not working yet we need to make it compatible with long form data")
 
         # Allow common abbreviations of effect.size as inputs, e.g. wr, wo, nb that can't be caught by pmatch
         effect_size_wr <- effect_size_wo <- effect_size_nb <- rep(NA, length(effect.size))
@@ -169,7 +185,7 @@ wins <- function(formula, data, data_covariates=NULL,
 
         # Formula Parsing --------------------------------
 
-        specials <- c("w_id","w_arm","w_stratum","w_time")
+        specials <- c("w_id","w_arm","w_stratum","w_time","w_iptw")
 
         lhs <- stats::terms.formula(formula[c(1,2)],specials = specials)
 
@@ -200,7 +216,7 @@ wins <- function(formula, data, data_covariates=NULL,
                 if(is.null(stratum.weight)){
                         stratum.weight <- "unstratified"
                 }
-                if(stratum.weight == "unstratified") warning(sprintf("stratum.weight is %s, but strata was not specified",stratum.weight))
+                if(stratum.weight != "unstratified") warning(sprintf("stratum.weight is %s, but w_stratum() was not used",stratum.weight))
         } else {
                 strataVar <- attr(rhs,"term.labels")[strataVar]
         }
@@ -208,6 +224,11 @@ wins <- function(formula, data, data_covariates=NULL,
         timeVar <- attr(rhs,"specials")$w_time
         if(!is.null(timeVar)){
                 timeVar <- attr(rhs,"term.labels")[timeVar]
+        }
+ 
+        iptwVar <- attr(rhs,"specials")$w_iptw
+        if(!is.null(timeVar)){
+                iptwVar <- attr(rhs,"term.labels")[iptwVar]
         }
 
         # Any other variables are covariates for covariate weighted IPCW
@@ -230,6 +251,12 @@ wins <- function(formula, data, data_covariates=NULL,
                                 id = eval(parse(text=idVar),envir = data)
                         )
                 )
+
+                # This is neccesary to ensure clean inputs to 
+                # win.stat() later on. See comment block about workarounds
+                # for odd behaviours in win.stat()
+                main_data$id <- as.factor(main_data$id)
+
         } else {
                 main_data <- cbind(
                         main_data,
@@ -249,13 +276,25 @@ wins <- function(formula, data, data_covariates=NULL,
                         )
                 )
         } else {
-                # TODO: Check if stratified analysis was specified and error
 
                 if(!is.null(stratum.weight)) if(stratum.weight != "unstratified") warning(sprintf("stratum.weight is %s but no w_stratum was specified",stratum.weight ))
 
                 stratum.weight <- "unstratified"
         }
 
+  
+        # For the time being, store iptw within the dataset that's being constructed.
+        # This is done so that we can take advantage of our summary measures when we're
+        # flattening main_data to one row per id later.
+
+        if(length(iptwVar)>0){
+                main_data <- cbind(
+                        main_data,
+                        data.frame(
+                                iptw = eval(parse(text=iptwVar),envir = data)
+                        )
+                )
+        }
 
         # Infer endpoint types, there's zero reason for the user to need to specify this.
         ep_type <- rep(NA,length(attr(lhs,"term.labels")))
@@ -432,12 +471,21 @@ wins <- function(formula, data, data_covariates=NULL,
 
         main_data <- main_data[which(!toDrop),]
 
+        if(nrow(main_data)==0){
+          suggestion <- ""
+          if(is.null(idVar)) suggestion <- " Did you need to specify w_id()?"
+
+          stop(sprintf("No records were passed to win.stat.%s",suggestion))
+          
+        }
+
+
         # Covariate Data Setup --------------------------------
 
         if(length(otherVars)>0){
           
                 if(is.null(method)){
-                        if(is.null(iptw.weight)){
+                        if(length(iptwVar)==0){
                                 method  <- "covipcw"
                         } else {
                                 method <- "iptw_covipcw"
@@ -456,6 +504,9 @@ wins <- function(formula, data, data_covariates=NULL,
                                 covariate_data <- data.frame(
                                         id = eval(parse(text=idVar),envir = data)
                                 )
+                                # As with main_data.
+                                # We also enforce here that IDs should match with main_data levels
+                                covariate_data$id <- factor(covariate_data$id, levels = levels(main_data$id))
                         } else {
                                 covariate_data <- data.frame(
                                         id = 1:nrow(data)
@@ -507,7 +558,9 @@ wins <- function(formula, data, data_covariates=NULL,
                                                 # }
 
                                                 if(length(thisVar)>1){
-                                                        stop(sprintf("Multiple values of %s found in %s %s",
+
+
+                                                        stop(sprintf("Multiple values of %s found in %s %s. Do you need to specify w_time()?",
                                                                 i,
                                                                 ifelse(is.null(idVar),"row",idVar),
                                                                 out[,"id"]
@@ -519,13 +572,13 @@ wins <- function(formula, data, data_covariates=NULL,
 
                                         }
 
-                                        if(nrow(out)>1) stop(sprintf("ID %s has multiple outcome values. Is w_time() missing?",x[,"id"]))
+                                        if(nrow(out)>1) stop(sprintf("ID %s has multiple values. Is w_time() missing?",x[,"id"]))
                                         out
                                 }))
                         }
                 
                         toDrop <- apply(covariate_data,1,function(x){any(is.na(x))})
-                        if(sum(toDrop)>0) warning(sprintf("%d records dropped due to missing covariates",sum(toDrop)))
+                        if(sum(toDrop)>0) warning(sprintf("%d rows dropped from covariate data due to missing values",sum(toDrop)))
                         covariate_data <- covariate_data[which(!toDrop),]
                 
                 } else {
@@ -536,6 +589,11 @@ wins <- function(formula, data, data_covariates=NULL,
                                 covariate_data <- data.frame(
                                         id = eval(parse(text=idVar),envir = data_covariates)
                                 )
+                          
+                                # As with main_data.
+                                # We also enforce here that IDs should match with main_data levels
+                                covariate_data$id <- factor(covariate_data$id, levels = levels(main_data$id))
+                          
                         } else {
                                 stop("If covarariate_data is supplied, formula must contain an ID variable")
                         }
@@ -560,7 +618,7 @@ wins <- function(formula, data, data_covariates=NULL,
                                 covariate_data[, i] <- eval(parse(text=i),envir = data_covariates)
                         }
                   
-                        # We can be a lot more trusting od the data sheet in this case - all we need to do is make sure ID and time are unique
+                        # We can be a lot more trusting of the data sheet in this case - all we need to do is make sure ID and time are unique
                         if(max(table(covariate_data$id,covariate_data$time))>1){
                           stop("Some IDs have multiple records at the same time")
                         } 
@@ -578,10 +636,17 @@ wins <- function(formula, data, data_covariates=NULL,
                                 covariate_data[,"id"] %in% main_data[which(main_data[,"arm"]==levels(main_data[,"arm"])[1]),"id"]
                         ),
                 ]
+
+                if(nrow(covariate_data_trt)==0 | nrow(covariate_data_con) == 0){
+                        suggestion <- ""
+                        if(is.null(idVar)) suggestion <- " Did you need to specify w_id()?"
+                        stop(sprintf("No covariate records were passed to win.stat.%s",suggestion))
+                }
+                
         } else {                
                 # No covariates for us to worry about
                 if(is.null(method)){
-                        if(is.null(iptw.weight)){
+                        if(length(iptwVar)==0){
                                 method  <- "unadjusted"
                         } else {
                                 method <- "iptw"
@@ -590,6 +655,22 @@ wins <- function(formula, data, data_covariates=NULL,
 
                 covariate_data_trt <- covariate_data_con <- NULL
         }
+
+
+        # Extract out iptw weights
+        if(length(iptwVar)==0){
+                iptw.weight = NULL          
+        } else {
+                iptw.weight = main_data$iptw
+                main_data <- main_data[,setdiff(colnames(main_data),"iptw")]
+        } 
+
+  
+        # Miscellaneous workarounds --------------------------
+  
+        # Despite being wonderfully feature complete, WINS
+        # has an awful lot of quirks with its inputs.
+        # This wrapper needs to obey them
 
         # win.stat() expects ID is expected to be numeric, from 1 to n_trt or n_con, where this
         # is separate across both arms. I.e. there should be two records with
@@ -605,32 +686,52 @@ wins <- function(formula, data, data_covariates=NULL,
         # We do the same to the main dataset and then join it all back together
         # once we've converted IDs within each arm to numerics separately.
 
-        # This is stupid but it works. I don't think this trick is needed
-        # if we haven't supplied covariate data.
+        # This is stupid, but it works.
 
-        if(!is.null(covariate_data_trt)){
+        # Additionally, win.stat is sensitive to input order.
+        # This can be verified by comparing the following code blocks:      
+  
+        # WINS::win.stat(data = WINS::data_tte, ep_type = "tte", arm.name = c("A","B"), tau = 0.1,
+        #         Z_t_trt = WINS::Z_t_trt, Z_t_con = WINS::Z_t_con, priority = c(1:3), alpha = 0.05, digit = 3,
+        #         method = "ipcw_tau", stratum.weight = "unstratified", pvalue = "two-sided")
 
-                covariate_data_trt$id <- factor(factor(covariate_data_trt$id))
-                covariate_data_con$id <- factor(factor(covariate_data_con$id))
+        # WINS::win.stat(data = WINS::data_tte[order(runif(nrow(WINS::data_tte))),],
+        #         ep_type = "tte", arm.name = c("A","B"), tau = 0.1,
+        #         Z_t_trt = WINS::Z_t_trt[order(runif(nrow(WINS::Z_t_trt))),],
+        #         Z_t_con = WINS::Z_t_con[order(runif(nrow(WINS::Z_t_con))),],
+        #         priority = c(1:3), alpha = 0.05, digit = 3,
+        #         method = "ipcw_tau", stratum.weight = "unstratified", pvalue = "two-sided")
+        
+        # which give different results despite the fact that the data was just shuffled around.
+  
+        # As a work around, we make sure that all input data are appropriately ordered
+        # before we feed it in. NOTE: this is why we enforce that id has to be a factor
+        # when we parse the dataset.
+        
+        con_id <- trt_id <- main_data$id
+        trt_id[main_data$arm==levels(main_data[,"arm"])[1]] <- NA
+        con_id[main_data$arm==levels(main_data[,"arm"])[2]] <- NA
+  
+        con_id <- droplevels(con_id)
+        trt_id <- droplevels(trt_id)
+  
+        con_id <- as.numeric(con_id)
+        trt_id <- as.numeric(trt_id)
+        
+        main_data$id <- ifelse(is.na(con_id),trt_id,con_id)
+        # order by arm and then ID
+        main_data <- main_data[order(main_data$arm,main_data$id),]
+   
+        if(!is.null(covariate_data_trt)){          
+
                 covariate_data_trt$id <- droplevels(covariate_data_trt$id)
                 covariate_data_con$id <- droplevels(covariate_data_con$id)
 
                 covariate_data_trt$id <- as.numeric(covariate_data_trt$id)
                 covariate_data_con$id <- as.numeric(covariate_data_con$id)
-
-
-                con_id <- trt_id <- factor(main_data$id)
-                trt_id[main_data$arm==levels(main_data[,"arm"])[1]] <- NA
-                con_id[main_data$arm==levels(main_data[,"arm"])[2]] <- NA
-
-                con_id <- droplevels(con_id)
-                trt_id <- droplevels(trt_id)
-
-                con_id <- as.numeric(con_id)
-                trt_id <- as.numeric(trt_id)
-
-                main_data$id <- ifelse(is.na(con_id),trt_id,con_id)
-
+                
+                covariate_data_con <- covariate_data_con[order(covariate_data_con$id, covariate_data_con$time),]
+                covariate_data_trt <- covariate_data_trt[order(covariate_data_trt$id, covariate_data_trt$time),] 
         }
 
 
@@ -643,6 +744,8 @@ wins <- function(formula, data, data_covariates=NULL,
         # returned from win.stat() and if they're not this bugged behaviour
         # we print it using message() so that other people can suppress
         # if they want to.
+  
+          
         messages <- utils::capture.output({
                 out <- WINS::win.stat(
                         data=main_data,
@@ -672,7 +775,6 @@ wins <- function(formula, data, data_covariates=NULL,
         }
 
         # Format results into a table to report back
-
         estimates <- do.call("rbind",lapply(names(out$Win_statistic),function(i){
                 cbind(effect_size=i,
                       as.data.frame(matrix(out$Win_statistic[[i]],nrow=1))
@@ -776,6 +878,26 @@ wins <- function(formula, data, data_covariates=NULL,
                 pvalue = pvalue,
                 stratum.weight = stratum.weight,
                 method  = method
+        )
+        attr(estimates,"arguments_win.stat") <- list(
+                        data=main_data,
+                        ep_type=ep_type,
+                        Z_t_trt = covariate_data_trt,
+                        Z_t_con = covariate_data_con,
+                        iptw.weight = iptw.weight,
+                        arm.name = rev(levels(main_data[,"arm"])),
+                        priority=priority,
+                        alpha = alpha,
+                        digit=10 ,     # Does nothing, completely arbitrary when summary.print = F
+                        tau=tau,
+                        np_direction = np.direction,
+                        horizon = horizon,
+                        win.strategy = win.strategy,
+                        pvalue = pvalue,
+                        stratum.weight = stratum.weight,
+                        method  = method,
+                        summary.print = FALSE,
+                        `...` = ...
         )
 
         return(estimates)

@@ -26,5 +26,7 @@ This is a reformatted version of the simulated dataset provided by
 \link[WINS]{data_tte}, \link[WINS]{Z_t_con} and \link[WINS]{Z_t_trt}
 in the WINS package, with a stratification variable added.
 It provides an example of data in time-series format.
+The ID variable has been reworked so that each ID corresponds to a different
+patient (i.e. there are not two patients with an ID of "1")
 }
 \keyword{datasets}

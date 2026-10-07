@@ -15,21 +15,22 @@ rbind(
   rbind(., df2 %>% mutate(arm = "B", event_1=NA,event_2=NA,event_3=NA) %>% select(id,arm,time=time,Z1,Z2,event_1, event_2, event_3)) %>%
   arrange(arm, id,time) %>%
   mutate(strata = id %%2 ) %>%
-  mutate(id = paste0(arm,id)) -> tte_longform
+  mutate(id = paste0(arm,id),
+         id = factor(id,levels=c(paste0("A",1:200),paste0("B",1:200))),
+         id = as.numeric(id)
+  ) -> tte_longform
 
 usethis::use_data(tte_longform, overwrite = T)
 
 
 df %>%
   mutate(strata = id %%2 ) %>%
-  mutate(id = paste0(arm,id)) -> tte_outcomes
+  mutate(id = id + ifelse(arm == "A",0,200)) -> tte_outcomes
 
 rbind(
-  df1 %>% mutate(arm = "A"),
-  df2 %>% mutate(arm = "B")
-) %>%
-  mutate(id = paste0(arm,id)) %>%
-  select(-arm) -> tte_covariates
+  df1,
+  df2 %>% mutate(id = id+200)
+) -> tte_covariates
 
 tte_covariates
 

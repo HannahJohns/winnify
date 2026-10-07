@@ -9,7 +9,6 @@ wins(
   data,
   data_covariates = NULL,
   effect.size = c("Win Ratio", "Win Odds", "Net Benefit"),
-  iptw.weight = NULL,
   alpha = 0.05,
   tau = 0,
   np.direction = "larger",
@@ -31,8 +30,6 @@ wins(
 
 \item{effect.size}{A character vector indicating which effect size measures to return. Allows partial matches with abbreviations, e.g. "wr" will match to "Win Ratio"}
 
-\item{iptw.weight}{A numeric vector giving the weights for IPT weighting. See \link[WINS]{win.stat}}
-
 \item{alpha}{A numeric argument giving the significance level. See \link[WINS]{win.stat}}
 
 \item{tau}{A numeric vector argument giving the threshold for minimal clinically important difference. \link[WINS]{win.stat}}
@@ -52,7 +49,25 @@ wins(
 \item{...}{Arguments passed from user defined functions for \code{win.strategy}. See \link[WINS]{win.stat}}
 }
 \value{
-this still needs written
+A three-row data frame containing the following:
+\describe{
+\item{effect_size}{The name of the effect size}
+\item{estimate}{The estimate from \code{win.stat} function}
+\item{lower}{The lower bound of the condifence interval estimate from \code{win.stat} function}
+\item{upper}{The upper bound of the confidence interval estimate from \code{win.stat} function}
+\item{pval}{The p-value from the \code{win.stat} function}
+\item{win}{The number of wins}
+\item{loss}{The number of losses}
+\item{tie}{The number of ties}
+\item{neutral_point}{The effect size estimate considered to be a neutral effect}
+\item{tie_handling}{If ties are evenly split between being wins and losses ("split") or ignored ("dropped")}
+} 
+
+Additionally, the following attributes are returned
+\describe{
+\item{arguments}{Input values for the function}
+\item{arguments_win.stat}{Input values for the \code{win.stat()} function call within this wrapper function}
+}
 }
 \description{
 A wrapper function for win.stat() function, allowing it to be used
@@ -85,7 +100,8 @@ user input. These differences are:
      }
      }
      \item Comparator vs Reference group is determined based on factor levels, with the first level used as the reference group and the second as the comparator.
-}
+     \item Rows of input data can be ordered arbitrarily (they are sorted by arm, id and time before being passed to \code{win.stat()})
+ }
 
 The wrapper does not provide arguments for specifying outcome priority or endpoint type.
 These values are inferred from user input.
@@ -101,10 +117,10 @@ These are marked using the following functions:
 \item \code{w_id(x)} - marks \code{x} as being the ID variable
 \item \code{w_stratum(x)} - marks \code{x} as being the stratum variable
 \item \code{w_time(x)} - marks \code{x} as being the time variable for time-varying covariates.
+\item \code{w_iptw(x)} - marks \code{x} as being the IPTW weight variable
 }
 All unmarked terms are assumed to be covariates used for estimating inverse-probability
-of censoring weighting. Note that win.stat does not support covariate adjustment of the
-treatment effect estimate. Use the \code{iptw.weight} argument to do this.
+of censoring weighting.
 }
 \examples{
 

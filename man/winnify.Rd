@@ -123,6 +123,7 @@ fields of interest:
 \item \code{w_id(x)} - marks \code{x} as being the ID variable
 \item \code{w_stratum(x)} - marks \code{x} as being the stratum variable
 \item \code{w_time(x)} - marks \code{x} as being the time variable for time-varying covariates.
+\item \code{w_iptw(x)} - marks \code{x} as being a weight variable for use with iptw weighting
 }
 
 \code{w_arm(x)} is needed for both the supplied \link{wins} and \link{ranks} functions,

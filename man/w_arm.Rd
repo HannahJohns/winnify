@@ -17,5 +17,5 @@ This is a special function used by winnify and supplied wrapper functions.
 It identifies which variable corresponds to the group
 }
 \details{
-When used outside of a formula, this is a dummy variable.
+When used outside of a formula, this is an identity function.
 }

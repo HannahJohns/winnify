@@ -24,5 +24,8 @@ in a separate dataset to outcome variables, mimicking a common data structure
 in clinical trials where outcomes and data collected at a single time point are
 found in one dataset and repeating measures are found in a second dataset.
 It is intended to be used in combination with \link{tte_outcomes}
+
+The ID variable has been reworked so that each ID corresponds to a different
+patient (i.e. there are not two patients with an ID of "1")
 }
 \keyword{datasets}

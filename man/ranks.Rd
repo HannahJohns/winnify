@@ -47,6 +47,7 @@ The \code{ranks_statistic} function must satisfy the following criteria:
 \item It must have \code{coef()} and \code{confint()} methods available for its output, which return the effect size and confidence intervals respectively
 }
 
+
 The left hand side of \code{formula} should list outcomes in order
 of importance, with the most important outcome coming first.
 Note that these are ranked from smallest value to highest value,
@@ -88,6 +89,8 @@ plot(x,effect_neutral_point = 1,pairs_tie = "split")
 library(genodds)
  
 my_statistic <- function(formula,data,...){
+
+
         lhs <- stats::model.frame(formula[1:2],data=data)
         rhs <- stats::model.frame(formula[c(1,3)],data=data)
   

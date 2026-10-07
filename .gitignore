@@ -6,3 +6,6 @@
 .vscode*
 .codemap*
 
+
+/.quarto/
+**/*.quarto_ipynb
