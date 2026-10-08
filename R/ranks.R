@@ -4,11 +4,11 @@
 #' A wrapper function for any rank-based statistical
 #' method, allowing it to be used with winnify(). 
 #' 
-#' @usage ranks(formula,data,ranks_statistic,exponentiate=FALSE,...)
 #' @param formula An object of class formula describing the analyses to run. Format for model specification are given in Details
 #' @param data A data.frame to analyse
 #' @param ranks_statistic A function to run. See Details.
 #' @param exponentiate A logical indicating if the results of \code{ranks_statistic} should be exponentiated
+#' @param outcome_as_factor A logical indicating if the outcome to be fed to \code{ranks_statistic} should be cast to an ordered factor. If \code{FALSE}, a numeric value is passed. 
 #' @param ... Any arguments to be passed to \code{ranks_statistic()} 
 #' 
 #' @details
@@ -36,6 +36,11 @@
 #' 
 #' All terms of \code{formula} are fed into \code{ranks_statistic}. Note that the estimates for wins, losses and ties
 #' are unadjusted and ignore all terms other than the one marked as the grouping variable.
+#' 
+#' Note that if \code{ranks_statistic} requires profiling to be redone to estimate
+#' confidence intervals (via e.g. a \code{vcov} call), this function will crash.
+#' A notable example of this is \link[MASS]{polr}. Any optional arguments
+#' to prevent re-profiling should be passed to \code{ranks_statistic} using \code{...}
 #' 
 #' @returns A one-row data frame containing the following:
 #' \describe{
@@ -111,11 +116,27 @@
 #'                      exponentiate=TRUE, ties="drop")
 #' plot(wr_result,effect_neutral_point = 1,pairs_tie = "drop")
 #' 
-ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
+#' # Proportional odds model
+#' 
+#' this_data <- winnify::remapcap
+#' this_data$days_alive <- this_data$deathTime
+#' this_data$days_out_of_icu <- 21-this_data$dischargeTime
+#' 
+#' # We only want two groups - organise factor levels and drop other.
+#' this_data$group <- factor(this_data$group,levels = c("uc","shock"))
+#' this_data <- this_data[which(!is.na(this_data$group)),]
+#' 
+#' library(MASS) 
+#' ranks(days_alive + days_out_of_icu ~ w_arm(group),
+#'       data = this_data,
+#'       ranks_statistic = polr, Hess=TRUE,
+#'       exponentiate = TRUE)
+#'
+#' @export ranks 
+ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,outcome_as_factor=TRUE,...){
    
     # Silence note about global variable bindings
-
-    stat_name <- as.character(substitute(ranks_statistic))
+    stat_name <- deparse(substitute(ranks_statistic))
 
     # Formula Parsing --------------------------------
     specials <- c("w_id","w_arm","w_stratum","w_time")
@@ -205,6 +226,7 @@ ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,...){
     main_data <- cbind(main_data, outcome_var)
     colnames(main_data)[ncol(main_data)] <- outcome_name
 
+    if(outcome_as_factor) main_data[,outcome_name] <- factor(main_data[,outcome_name], ordered=TRUE)
 
     # Get wins, losses and ties based on pairwise comparisons
     if(length(otherVars)>0){

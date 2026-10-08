@@ -4,7 +4,14 @@
 \alias{ranks}
 \title{Wrapper function for rank-based statistical methods}
 \usage{
-ranks(formula,data,ranks_statistic,exponentiate=FALSE,...)
+ranks(
+  formula,
+  data,
+  ranks_statistic,
+  exponentiate = FALSE,
+  outcome_as_factor = TRUE,
+  ...
+)
 }
 \arguments{
 \item{formula}{An object of class formula describing the analyses to run. Format for model specification are given in Details}
@@ -14,6 +21,8 @@ ranks(formula,data,ranks_statistic,exponentiate=FALSE,...)
 \item{ranks_statistic}{A function to run. See Details.}
 
 \item{exponentiate}{A logical indicating if the results of \code{ranks_statistic} should be exponentiated}
+
+\item{outcome_as_factor}{A logical indicating if the outcome to be fed to \code{ranks_statistic} should be cast to an ordered factor. If \code{FALSE}, a numeric value is passed.}
 
 \item{...}{Any arguments to be passed to \code{ranks_statistic()}}
 }
@@ -59,6 +68,11 @@ it will be coerced into one before \code{ranks_statistic} is run.
 
 All terms of \code{formula} are fed into \code{ranks_statistic}. Note that the estimates for wins, losses and ties
 are unadjusted and ignore all terms other than the one marked as the grouping variable.
+
+Note that if \code{ranks_statistic} requires profiling to be redone to estimate
+confidence intervals (via e.g. a \code{vcov} call), this function will crash.
+A notable example of this is \link[MASS]{polr}. Any optional arguments
+to prevent re-profiling should be passed to \code{ranks_statistic} using \code{...}
 }
 \examples{
 
@@ -121,5 +135,21 @@ plot(wo_result,effect_neutral_point = 1,pairs_tie = "split")
 wr_result <- winnify(formula, ranks, data, ranks_statistic = my_statistic,
                      exponentiate=TRUE, ties="drop")
 plot(wr_result,effect_neutral_point = 1,pairs_tie = "drop")
+
+# Proportional odds model
+
+this_data <- winnify::remapcap
+this_data$days_alive <- this_data$deathTime
+this_data$days_out_of_icu <- 21-this_data$dischargeTime
+
+# We only want two groups - organise factor levels and drop other.
+this_data$group <- factor(this_data$group,levels = c("uc","shock"))
+this_data <- this_data[which(!is.na(this_data$group)),]
+
+library(MASS) 
+ranks(days_alive + days_out_of_icu ~ w_arm(group),
+      data = this_data,
+      ranks_statistic = polr, Hess=TRUE,
+      exponentiate = TRUE)
 
 }

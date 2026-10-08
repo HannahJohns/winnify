@@ -51,3 +51,32 @@ test_that("wins gives the same results if input rows are reordered", {
   )
 
 })
+
+test_that("longform data and two-dataset formats give same result on test data",{
+
+  this_data <- winnify::tte_longform
+  this_data$arm <- factor(this_data$arm,levels = c("B","A"))
+  result_longform <- wins(survival::Surv(time,event_1) +
+                            survival::Surv(time,event_2) +
+                            survival::Surv(time,event_3) ~
+                            w_arm(arm) + w_time(time) + w_id(id) + Z1 + Z2,
+                          data=this_data
+  )
+
+  this_data_outcomes <- winnify::tte_outcomes
+  this_data_outcomes$arm <- factor(this_data_outcomes$arm,levels = c("B","A"))
+  this_data_covariates <- winnify::tte_covariates
+
+  result_twoform <- wins(survival::Surv(Y_1,Delta_1) +
+       survival::Surv(Y_2,Delta_2) +
+       survival::Surv(Y_3,Delta_3) ~
+       w_arm(arm) + w_time(time) + w_id(id) + Z1 + Z2,
+      data=this_data_outcomes,data_covariates = this_data_covariates
+    )
+
+  expect_equal(
+    result_longform$estimate[result_longform$effect_size=="Win Ratio"],
+    result_twoform$estimate[result_twoform$effect_size=="Win Ratio"]
+  )
+  
+})

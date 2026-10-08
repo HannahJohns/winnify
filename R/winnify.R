@@ -240,7 +240,7 @@ plot.Winnify <- function(x,
                          pairs_tie.linetype="dashed",
 
                          pairs.fill = NULL,
-                         pairs.fill.reverse = FALSE,
+                         pairs.fill.reverse = NULL,
                          pairs_component.width  = 1,
                          pairs_overall.width  = 0.6,
 
