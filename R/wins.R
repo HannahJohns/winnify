@@ -119,13 +119,13 @@
 #' 
 #' wins(formula,data)
 #' 
-#' ## Use of wins() in a winnify() call
-#' 
-#' wins(formula,data)
-#' x <- winnify(formula,wins,data, tau=c(1,0.5,0))
-#' plot(x, effect_size = "wr")
-#' plot(x, effect_size = "wo")
-#' plot(x, effect_size = "nb") 
+#' ## Use of wins() in a winnify() call 
+#' \dontrun{
+#'     x <- winnify(formula,wins,data, tau=c(1,0.5,0))
+#'     plot(x, effect_size = "wr")
+#'     plot(x, effect_size = "wo")
+#'     plot(x, effect_size = "nb") 
+#' }
 #'
 wins <- function(formula, data,
                  data_covariates=NULL,

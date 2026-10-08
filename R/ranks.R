@@ -63,17 +63,36 @@
 #' 
 #' # pim estimates the Win Odds for ordinal data
 #' # and is structured to not require additional
-#' # work to use it.
+#' # work to use it with ranks().
+#' 
+#' \dontrun{
 #' 
 #' library(pim)
-#' 
 #' ranks(formula,data,ranks_statistic = pim)
 #' 
 #' ## Use of ranks() in a winnify() call
 #' 
+#' # estim=estimator.glm is used here because it's fast
 #' x <- winnify(formula, ranks, data, ranks_statistic = pim, exponentiate=TRUE)
 #' plot(x,effect_neutral_point = 1,pairs_tie = "split")
+#' }
 #' 
+#' # Running other analysis methods, e.g.
+#' # Proportional odds model
+#' 
+#' this_data <- winnify::remapcap
+#' this_data$days_alive <- this_data$deathTime
+#' this_data$days_out_of_icu <- 21-this_data$dischargeTime
+#' 
+#' # We only want two groups - organise factor levels and drop other.
+#' this_data$group <- factor(this_data$group,levels = c("uc","shock"))
+#' this_data <- this_data[which(!is.na(this_data$group)),]
+#' 
+#' library(MASS) 
+#' ranks(days_alive + days_out_of_icu ~ w_arm(group),
+#'       data = this_data,
+#'       ranks_statistic = polr, Hess=TRUE,
+#'       exponentiate = TRUE)
 #' ## Example of use of a function that needs a wrapper
 #' 
 #' # genodds estimates the Win Odds or Win Ratio for ordinal data
@@ -97,7 +116,7 @@
 #'   
 #'         # genodds returns an object of class Genodds.
 #'         # if it didn't, we would need to give it a class
-#'         # we can write write S3 methods for.         
+#'         # that we can write write S3 methods for.         
 #'         # class(fit) <- c("MyRankStat",class(fit))   
 #'         fit
 #' }
@@ -116,21 +135,6 @@
 #'                      exponentiate=TRUE, ties="drop")
 #' plot(wr_result,effect_neutral_point = 1,pairs_tie = "drop")
 #' 
-#' # Proportional odds model
-#' 
-#' this_data <- winnify::remapcap
-#' this_data$days_alive <- this_data$deathTime
-#' this_data$days_out_of_icu <- 21-this_data$dischargeTime
-#' 
-#' # We only want two groups - organise factor levels and drop other.
-#' this_data$group <- factor(this_data$group,levels = c("uc","shock"))
-#' this_data <- this_data[which(!is.na(this_data$group)),]
-#' 
-#' library(MASS) 
-#' ranks(days_alive + days_out_of_icu ~ w_arm(group),
-#'       data = this_data,
-#'       ranks_statistic = polr, Hess=TRUE,
-#'       exponentiate = TRUE)
 #'
 #' @export ranks 
 ranks <- function(formula,data,ranks_statistic,exponentiate=FALSE,outcome_as_factor=TRUE,...){
