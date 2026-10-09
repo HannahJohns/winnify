@@ -18,7 +18,7 @@ Authors@R: c(
         )
         ) 
 Maintainer: Hannah Johns <dr.hannah.johns@gmail.com>
-Description: Visualises the contribution of individual outcomes under generalized pairwise comparisons with prioritised outcomes (e.g. Win Ratio, Win Odds and Net Benefit), and provides convenience functions for making prioritised outcomes analysis easier to run.
+Description: Visualises the contribution of individual outcomes under generalized pairwise comparisons with prioritised outcomes (e.g. Win Ratio, Win Odds and Net Benefit) using an approach proposed by Johns et al. (2026) <doi:10.1177/17474930261475853>, and provides convenience functions for making prioritised outcomes analysis easier to run.
 License: GPL (>=2.0)
 Encoding: UTF-8
 LazyData: true

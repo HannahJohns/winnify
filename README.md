@@ -7,4 +7,4 @@ function to show treatment effects as successively less important outcomes are a
 prioritised outcomes analysis.
 
 The package also supports plotting of results produced by winnify() using the approach pioneered by
-the [MSU-TELEMED trial](www.doi.org/10.1056/EVIDoa2500217) and recommended by [a tutorial paper published by the same group](https://doi.org/10.1177/17474930261475853)
+the [MSU-TELEMED trial](https://www.doi.org/10.1056/EVIDoa2500217) and recommended by [a tutorial paper published by the same group](https://doi.org/10.1177/17474930261475853)
