@@ -1,6 +1,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 .vscode*
+.posit*
 winRatioExample.R
 scratchspace.R
 data-raw*

@@ -85,7 +85,7 @@ formula <- mRS+early_neuro_improvement~w_arm(treat)
 # and is structured to not require additional
 # work to use it with ranks().
 
-\dontrun{
+\donttest{
 
 library(pim)
 ranks(formula,data,ranks_statistic = pim)
